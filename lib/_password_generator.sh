@@ -35,14 +35,7 @@ generate_password() {
   [[ "$use_numbers" =~ ^[yY]$ ]] && char_pool+="$number_chars"
   [[ "$use_symbols" =~ ^[yY]$ ]] && char_pool+="$symbol_chars"
 
-  local password=""
-  for (( i=0; i<length; i++ )); do
-    # Use Bash's RANDOM to pick a character from the pool.
-    # Bash's RANDOM is not cryptographically secure, but for password generation
-    # where the entropy is primarily derived from the user's choices (length, char sets)
-    # and the variety of the character pool, it is generally acceptable for this context.
-    password+="${char_pool:RANDOM % ${#char_pool}:1}"
-  done
-
-  echo "$password"
+  # Use /dev/urandom for cryptographically secure random password generation
+  < /dev/urandom tr -dc "$char_pool" | head -c "$length"
+  echo
 }

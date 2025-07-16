@@ -88,10 +88,8 @@ get_master_password() {
         continue
       fi
     fi
-    # Use nameref (or eval for older bash) to set the variable by its name
-    # For Bash 4.3+ 'declare -n' (nameref) is safer, but eval is more compatible.
-    # Given the context (simple assignment), eval is generally fine here.
-    eval "${password_var_name}=\"$master_pass\""
+    # Use printf -v for safer variable assignment by name.
+    printf -v "$password_var_name" "%s" "$master_pass"
     break
   done
 }
@@ -116,16 +114,16 @@ get_optional_input_with_remove() {
       return 1 # Indicate cancellation
     elif [[ -z "$input_val" ]]; then
       # User left blank, keep current value
-      eval "${var_name}=\"$current_val\""
+      printf -v "$var_name" "%s" "$current_val"
       break
     elif [[ "$lower_input" == "x" ]]; then
       # User typed X, set to empty to remove from JSON
-      eval "${var_name}=\"\""
+      printf -v "$var_name" "%s" ""
       echo -e "${CYAN}Field will be removed.${RESET}"
       break
     else
       # User provided a new value
-      eval "${var_name}=\"$input_val\""
+      printf -v "$var_name" "%s" "$input_val"
       break
     fi
   done
@@ -152,7 +150,7 @@ get_mandatory_input_conditional() {
           return 1 # Indicate cancellation
         fi
         if [[ -n "$input_val" ]]; then
-            eval "${var_name}=\"$input_val\""
+            printf -v "$var_name" "%s" "$input_val"
             break
         else
             echo -e "${RED}🚫 This field cannot be empty! Please provide a value or type '${CYAN}C${RED}' to cancel.${RESET}"

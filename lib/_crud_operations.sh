@@ -644,17 +644,14 @@ edit_entry() {
     new_password=$(generate_password "$length" "$upper" "$numbers" "$symbols") # From _password_generator.sh
     echo -e "${GREEN}🔐 Generated new password: ${BOLD}$new_password${RESET}\n"
   else
-    # If not generating, prompt for manual password entry
-    if [[ -n "$actual_logged_in_via" ]]; then # Use actual_logged_in_via for this check
-      # If using service login, password for website is optional
-      get_optional_input_with_remove "🔑 Update Website password" "$current_password" new_password # From _utils.sh
-      if [[ $? -ne 0 ]]; then clear_screen; return; fi # Check for CANCEL and clear screen
-    else
-      # If not using service login, password for website is mandatory
-      get_mandatory_input_conditional "🔑 Update Website password" "$current_password" new_password "true" # From _utils.sh
-      if [[ $? -ne 0 ]]; then clear_screen; return; fi # Check for CANCEL and clear screen
+      # If not generating, prompt for manual password entry
+      # Always use get_optional_input_with_remove for password in edit mode
+      # This allows keeping current, setting new, or removing (with 'X')
+      if ! get_optional_input_with_remove "🔑 Update Website password" "$current_password" new_password; then
+        clear_screen
+        return
+      fi
     fi
-  fi
   echo "" # Extra space
 
   local timestamp=$(date "+%Y-%m-%d %H:%M:%S")

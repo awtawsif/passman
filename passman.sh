@@ -10,7 +10,6 @@ set -e
 # Treat unset variables as an error and exit.
 set -u
 # Print commands and their arguments as they are executed (useful for debugging).
-# set -x # Uncomment for verbose debugging
 # The return value of a pipeline is the value of the last (rightmost) command
 # to exit with a non-zero status, or zero if all commands in the pipeline exit successfully.
 set -o pipefail
@@ -31,12 +30,12 @@ source "${SCRIPT_DIR}/lib/_change_master.sh"     # Change master password logic
 # --- Global Variables (Managed by main_loop and cleanup_on_exit) ---
 # The securely encrypted file.
 ENC_JSON_FILE="credentials.json.enc"
-# Temporary file for decrypted plaintext JSON (will be set by mktemp in main_loop).
-DEC_JSON_FILE=""
 # Stores the master password during the session (critical for crypto functions).
 MASTER_PASSWORD=""
 # Flag to track if the user has authenticated successfully.
 IS_AUTHENTICATED="false"
+# Stores the decrypted JSON data in memory.
+CREDENTIALS_DATA=""
 
 # --- Dependency Checks ---
 # Ensures that 'jq' and 'openssl' are installed.
@@ -66,17 +65,6 @@ main_loop() {
   # Ensure all necessary external tools (jq, openssl) are installed
   check_dependencies
 
-  # Create a temporary file for decrypted data. mktemp is safer than fixed names.
-  # Using --tmpdir="$PWD" would keep it in the current directory if desired,
-  # but letting mktemp choose default secure location is generally best practice.
-  # The DEC_JSON_FILE is declared globally and used by crypto/data functions.
-  DEC_JSON_FILE=$(mktemp)
-  if [[ ! -f "$DEC_JSON_FILE" ]]; then
-    echo -e "${RED}🚫 Error: Failed to create temporary file for decrypted data. Exiting.${RESET}"
-    exit 1
-  fi
-  # The trap defined in _crypto.sh ensures this file is cleaned up on exit.
-
   # Handle initial setup or regular login
   if [[ ! -f "$ENC_JSON_FILE" ]]; then
     echo -e "${YELLOW}🔑 No encrypted credentials file found. This appears to be your first run.${RESET}"
@@ -90,10 +78,8 @@ main_loop() {
       exit 1
     fi
 
-    # Create an empty encrypted JSON array and save it
-    # We save an empty JSON array to the temporary decrypted file first
-    # then the cleanup_on_exit trap will encrypt it to ENC_JSON_FILE
-    printf "%s" "[]" > "$DEC_JSON_FILE"
+    # Initialize in-memory data with an empty JSON array
+    CREDENTIALS_DATA="[]"
     IS_AUTHENTICATED="true" # Mark as authenticated so cleanup will encrypt
     echo -e "${GREEN}✅ Initial credentials file created and encrypted!${RESET}"
     clear_screen # Clear after initial setup messages
@@ -117,7 +103,7 @@ main_loop() {
 
     if [[ "$decrypt_status" -ne 0 ]]; then
       echo -e "${RED}❌ Incorrect master password or corrupted file. Please verify your password and try again.${RESET}"
-      exit 1 # Exit, cleanup_on_exit will run and delete the empty temp file if it was created.
+      exit 1
     fi
 
     # If openssl returned 0, it means decryption *appeared* to succeed,
@@ -125,7 +111,7 @@ main_loop() {
     # but the password was technically correct, or openssl produced non-JSON output).
     # This check is crucial to catch that.
     if echo "$decrypted_content" | jq -e . &>/dev/null; then
-      printf "%s" "$decrypted_content" > "$DEC_JSON_FILE"
+      CREDENTIALS_DATA="$decrypted_content" # Store decrypted content in memory
       IS_AUTHENTICATED="true" # Mark as authenticated
       echo -e "${GREEN}✅ Credentials decrypted successfully!${RESET}"
       clear_screen

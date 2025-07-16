@@ -4,7 +4,7 @@
 
 # Dependencies:
 # - _colors.sh, _utils.sh, _crypto.sh, _data_storage.sh
-# Uses global variables: ENC_JSON_FILE, DEC_JSON_FILE, MASTER_PASSWORD, IS_AUTHENTICATED
+# Uses global variables: ENC_JSON_FILE, MASTER_PASSWORD, IS_AUTHENTICATED, CREDENTIALS_DATA
 
 change_master_password() {
   clear_screen
@@ -21,6 +21,7 @@ change_master_password() {
   fi
 
   # Attempt to decrypt with current password to verify
+  # We decrypt the *existing* encrypted file with the *current* password to verify it.
   if ! decrypt_data "$ENC_JSON_FILE" "$current_pass" >/dev/null 2>&1; then
     echo -e "${RED}❌ Incorrect current master password. Aborting.${RESET}"
     pause
@@ -42,26 +43,16 @@ change_master_password() {
     return
   fi
 
-  # Decrypt current data
-  local decrypted_content
-  decrypted_content=$(decrypt_data "$ENC_JSON_FILE" "$current_pass" 2>/dev/null)
-  if [[ $? -ne 0 ]]; then
-    echo -e "${RED}❌ Failed to decrypt data with current password. Aborting.${RESET}"
-    pause
-    return
-  fi
-
-  # Encrypt with new password
-  local temp_encrypted_file
-  temp_encrypted_file=$(mktemp)
-  if ! encrypt_data "$decrypted_content" "$new_pass" > "$temp_encrypted_file" 2>/dev/null; then
+  # Encrypt the in-memory data with the new password
+  local temp_encrypted_file=$(mktemp)
+  if ! encrypt_data "$CREDENTIALS_DATA" "$new_pass" > "$temp_encrypted_file" 2>/dev/null; then
     echo -e "${RED}❌ Failed to encrypt data with new password. Aborting.${RESET}"
     rm -f "$temp_encrypted_file"
     pause
     return
   fi
 
-  # Overwrite the encrypted file
+  # Overwrite the encrypted file with the newly encrypted data
   mv "$temp_encrypted_file" "$ENC_JSON_FILE"
 
   # Update in-memory master password for this session
