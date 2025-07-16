@@ -480,7 +480,6 @@ edit_entry() {
   echo -e "${CYAN}You are now editing this entry. Use the options provided for each field.${RESET}"
   echo "" # Extra space
 
-  # Prompt for new values, handling "X" for remove and "C" for cancel
   local new_website="$current_website"
   while true; do
     read -rp "$(printf "${YELLOW}🌐 Update Website/Service Name (current: ${BOLD}%s${RESET}, cannot be empty):${RESET} " "$current_website")" new_website_input
@@ -623,7 +622,7 @@ edit_entry() {
 
     while true; do
       read -rp "$(printf "${YELLOW}🔢 Include numbers? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " numbers_input
-      numbers=$(trim "${numbers_input:-y}") # From _utils.sh - Default to 'y'
+      numbers=$(trim "${numbers_input:-y}") # Default to 'y'
       echo "" # Extra space
       local lower_input
       lower_input=$(echo "$numbers_input" | tr '[:upper:]' '[:lower:]')
@@ -641,7 +640,7 @@ edit_entry() {
 
     while true; do
       read -rp "$(printf "${YELLOW}🔣 Include symbols? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " symbols_input
-      symbols=$(trim "${symbols_input:-y}") # From _utils.sh - Default to 'y'
+      symbols=$(trim "${symbols_input:-y}") # Default to 'y'
       echo "" # Extra space
       local lower_input
       lower_input=$(echo "$symbols_input" | tr '[:upper:]' '[:lower:]')

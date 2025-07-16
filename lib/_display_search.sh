@@ -376,6 +376,8 @@ view_all_entries_menu() {
             copy_to_clipboard "$value_to_copy"
             if [[ $? -eq 0 ]]; then
               echo -e "${GREEN}Copied to clipboard!${RESET}"
+              # Clear the copied value from clipboard after a short delay for security
+              (sleep 10 && copy_to_clipboard "") &>/dev/null & disown
             fi
           else
             echo -e "${YELLOW}No value found for the selected field.${RESET}"

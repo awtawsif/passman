@@ -26,10 +26,21 @@ source "${SCRIPT_DIR}/lib/_password_generator.sh" # Password generation logic
 source "${SCRIPT_DIR}/lib/_crud_operations.sh"   # Add, Edit, Remove operations
 source "${SCRIPT_DIR}/lib/_display_search.sh"    # Display and Search functions
 source "${SCRIPT_DIR}/lib/_change_master.sh"     # Change master password logic
+source "${SCRIPT_DIR}/lib/_config.sh"            # Configuration management (new)
 
 # --- Global Variables (Managed by main_loop and cleanup_on_exit) ---
-# The securely encrypted file.
-ENC_JSON_FILE="credentials.json.enc"
+# Path to the configuration directory (e.g., where passman.conf is stored)
+CONFIG_DIR="${SCRIPT_DIR}" # You could change this to ~/.config/passman for system-wide config
+# Path to the configuration file
+CONFIG_FILE="${CONFIG_DIR}/passman.conf"
+# Default filename for the encrypted credentials
+DEFAULT_ENC_FILENAME="credentials.json.enc"
+
+# Stores the directory where the encrypted file is saved (loaded from config or defaulted)
+SAVE_LOCATION=""
+# The full path to the securely encrypted file. This will be set dynamically.
+ENC_JSON_FILE=""
+
 # Stores the master password during the session (critical for crypto functions).
 MASTER_PASSWORD=""
 # Flag to track if the user has authenticated successfully.
@@ -65,9 +76,12 @@ main_loop() {
   # Ensure all necessary external tools (jq, openssl) are installed
   check_dependencies
 
+  # Load the saved configuration for file location and set ENC_JSON_FILE
+  load_config_and_set_paths
+
   # Handle initial setup or regular login
   if [[ ! -f "$ENC_JSON_FILE" ]]; then
-    echo -e "${YELLOW}🔑 No encrypted credentials file found. This appears to be your first run.${RESET}"
+    echo -e "${YELLOW}🔑 No encrypted credentials file found at ${BOLD}${ENC_JSON_FILE}${RESET}${YELLOW}. This appears to be your first run or the file was moved.${RESET}"
     echo -e "${YELLOW}You'll be prompted to set up your master password for encryption.${RESET}"
     echo -e "${BOLD}${RED}🚨 WARNING: Remember this password! There is NO recovery if you forget it.${RESET}"
     # get_master_password is from _utils.sh
@@ -95,7 +109,7 @@ main_loop() {
       exit 1
     fi
 
-    echo -e "${CYAN}Attempting to decrypt credentials...${RESET}"
+    echo -e "${CYAN}Attempting to decrypt credentials from ${BOLD}${ENC_JSON_FILE}${RESET}${CYAN}...${RESET}"
     # decrypt_data is from _crypto.sh
     # Redirect stderr of decrypt_data to /dev/null to suppress OpenSSL warnings/errors
     local decrypted_content
@@ -134,8 +148,9 @@ main_loop() {
       echo -e "${BOLD}5)${RESET} ${YELLOW}Remove entry${RESET}"
       echo -e "${BOLD}6)${RESET} ${YELLOW}Quit${RESET}"
       echo -e "${BOLD}7)${RESET} ${YELLOW}Change master password${RESET}"
+      echo -e "${BOLD}8)${RESET} ${YELLOW}Change file saving location${RESET}" # New option
       echo "" # Extra space
-      read -rp "$(printf "${YELLOW}Enter your choice [1-7]:${RESET} ") " choice
+      read -rp "$(printf "${YELLOW}Enter your choice [1-8]:${RESET} ") " choice
       choice=$(trim "$choice") # trim is from _utils.sh
       echo "" # Extra space
 
@@ -147,7 +162,8 @@ main_loop() {
         5) remove_entry ;; # from _crud_operations.sh
         6) echo -e "${CYAN}👋 Goodbye! Your data is securely locked.${RESET}"; exit 0 ;; # Exits, triggering trap
         7) change_master_password ;; # from _change_master.sh
-        *) echo -e "${RED}❌ Invalid option. Please enter a number between ${BOLD}1${RESET}${RED} and ${BOLD}7${RESET}${RED}.${RESET}" ;;
+        8) change_save_location ;; # from _config.sh (new)
+        *) echo -e "${RED}❌ Invalid option. Please enter a number between ${BOLD}1${RESET}${RED} and ${BOLD}8${RESET}${RED}.${RESET}" ;;
       esac
     done
   fi
