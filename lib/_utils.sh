@@ -108,7 +108,8 @@ get_optional_input_with_remove() {
     input_val=$(trim "$input_val")
     echo "" # Extra space
 
-    local lower_input=$(echo "$input_val" | tr '[:upper:]' '[:lower:]')
+    local lower_input
+    lower_input=$(echo "$input_val" | tr '[:upper:]' '[:lower:]')
 
     if [[ "$lower_input" == "c" ]]; then
       return 1 # Indicate cancellation
@@ -145,7 +146,8 @@ get_mandatory_input_conditional() {
         read -p "$(printf "${YELLOW}%s (current: ${BOLD}%s${RESET}, cannot be empty):${RESET} " "$prompt_msg" "${current_val:-None}")" input_val
         input_val=$(trim "$input_val")
         echo "" # Extra space
-        local lower_input=$(echo "$input_val" | tr '[:upper:]' '[:lower:]')
+        local lower_input
+        lower_input=$(echo "$input_val" | tr '[:upper:]' '[:lower:]')
         if [[ "$lower_input" == "c" ]]; then
           return 1 # Indicate cancellation
         fi

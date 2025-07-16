@@ -37,7 +37,7 @@ search_entries() {
   done
   echo ""
 
-  read -p "$(printf "${YELLOW}Enter field numbers to filter by (comma-separated), or press Enter to show all:${RESET} ")" field_choices
+  read -rp "$(printf "${YELLOW}Enter field numbers to filter by (comma-separated), or press Enter to show all:${RESET} ")" field_choices
   field_choices=$(trim "$field_choices")
 
   # Initialize all filters as empty
@@ -52,7 +52,7 @@ search_entries() {
       idx=$(echo "$idx" | xargs) # trim spaces
       if [[ "$idx" =~ ^[1-6]$ ]]; then
         prompt="${field_prompts[$((idx-1))]}"
-        read -p "$(printf "${YELLOW}%s: ${RESET}" "$prompt")" value
+        read -rp "$(printf "${YELLOW}%s: ${RESET}" "$prompt")" value
         value=$(trim "$value")
         eval "${field_vars[$((idx-1))]}=\"\$value\""
         echo ""
@@ -100,7 +100,7 @@ search_entries() {
     echo -e "${YELLOW}How should filters be combined?${RESET}"
     echo -e "  ${BOLD}1)${RESET} Match ${BOLD}ALL${RESET} filters (AND)"
     echo -e "  ${BOLD}2)${RESET} Match ${BOLD}ANY${RESET} filter (OR)"
-    read -p "$(printf "${YELLOW}Enter 1 for AND, 2 for OR [default: 1]:${RESET} ")" filter_mode_choice
+    read -rp "$(printf "${YELLOW}Enter 1 for AND, 2 for OR [default: 1]:${RESET} ")" filter_mode_choice
     filter_mode_choice=$(trim "$filter_mode_choice")
     if [[ "$filter_mode_choice" == "2" ]]; then
       filter_mode="or"
@@ -177,10 +177,11 @@ search_entries() {
     }' || true # This was the previous fix.
 
     # --- Clipboard Integration ---
-    local num_results=$(echo "$filtered_json_array" | jq 'length')
+    local num_results
+    num_results=$(echo "$filtered_json_array" | jq 'length')
     if [[ "$num_results" -gt 0 ]]; then
       echo -e "${YELLOW}Would you like to copy a field from a result to the clipboard?${RESET}"
-      read -p "$(printf "${YELLOW}Enter result number [1-%d] to copy, or press Enter to skip:${RESET} " "$num_results")" copy_idx
+      read -rp "$(printf "${YELLOW}Enter result number [1-%d] to copy, or press Enter to skip:${RESET} " "$num_results")" copy_idx
       copy_idx=$(trim "$copy_idx")
       if [[ "$copy_idx" =~ ^[0-9]+$ ]] && (( copy_idx >= 1 && copy_idx <= num_results )); then
         # Determine available fields for the selected entry
@@ -219,7 +220,7 @@ search_entries() {
           for i in "${!options[@]}"; do
             echo -e "  ${BOLD}$((i+1)))${RESET} ${option_labels[$i]}"
           done
-          read -p "$(printf "${YELLOW}Enter field number [1-%d]:${RESET} " "${#options[@]}")" field_idx
+          read -rp "$(printf "${YELLOW}Enter field number [1-%d]:${RESET} " "${#options[@]}")" field_idx
           field_idx=$(trim "$field_idx")
           if [[ "$field_idx" =~ ^[0-9]+$ ]] && (( field_idx >= 1 && field_idx <= ${#options[@]} )); then
             local jq_field="${field_map[$((field_idx-1))]}"
@@ -252,7 +253,8 @@ view_entries_formatted() {
     return 0 # Indicate no entries could be loaded
   fi
 
-  local num_entries=$(echo "$entries_json" | jq 'length')
+  local num_entries
+  num_entries=$(echo "$entries_json" | jq 'length')
 
   if [[ "$num_entries" -eq 0 ]]; then
     echo -e "${YELLOW}No entries found yet. Start by adding a new one!${RESET}"
@@ -321,10 +323,11 @@ view_all_entries_menu() {
   # --- Clipboard Integration for All Entries ---
   local entries_json
   entries_json=$(load_entries)
-  local num_entries=$(echo "$entries_json" | jq 'length')
+  local num_entries
+  num_entries=$(echo "$entries_json" | jq 'length')
   if [[ "$num_entries" -gt 0 ]]; then
     echo -e "${YELLOW}Would you like to copy a field from an entry to the clipboard?${RESET}"
-    read -p "$(printf "${YELLOW}Enter entry number [1-%d] to copy, or press Enter to skip:${RESET} " "$num_entries")" copy_idx
+    read -rp "$(printf "${YELLOW}Enter entry number [1-%d] to copy, or press Enter to skip:${RESET} " "$num_entries")" copy_idx
     copy_idx=$(trim "$copy_idx")
     if [[ "$copy_idx" =~ ^[0-9]+$ ]] && (( copy_idx >= 1 && copy_idx <= num_entries )); then
       # Determine available fields for the selected entry
@@ -363,7 +366,7 @@ view_all_entries_menu() {
         for i in "${!options[@]}"; do
           echo -e "  ${BOLD}$((i+1)))${RESET} ${option_labels[$i]}"
         done
-        read -p "$(printf "${YELLOW}Enter field number [1-%d]:${RESET} " "${#options[@]}")" field_idx
+        read -rp "$(printf "${YELLOW}Enter field number [1-%d]:${RESET} " "${#options[@]}")" field_idx
         field_idx=$(trim "$field_idx")
         if [[ "$field_idx" =~ ^[0-9]+$ ]] && (( field_idx >= 1 && field_idx <= ${#options[@]} )); then
           local jq_field="${field_map[$((field_idx-1))]}"

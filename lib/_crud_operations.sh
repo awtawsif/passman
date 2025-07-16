@@ -24,7 +24,7 @@ add_entry() {
   local website email username password logged_in_via linked_email recovery_email timestamp
 
   while true; do
-    read -p "$(printf "${YELLOW}🌐 Enter Website Name: ${RESET}") " website_input
+    read -rp "$(printf "${YELLOW}🌐 Enter Website Name: ${RESET}") " website_input
     website=$(trim "$website_input") # From _utils.sh
     echo "" # Extra space
     if [[ "$(echo "$website" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
@@ -39,7 +39,7 @@ add_entry() {
 
   local logged_in_via_input
   while true; do
-    read -p "$(printf "${YELLOW}🔗 Did you log into this site using another service (e.g., Google, Facebook)? (Leave blank if not): ${RESET}") " logged_in_via_input
+    read -rp "$(printf "${YELLOW}🔗 Did you log into this site using another service (e.g., Google, Facebook)? (Leave blank if not): ${RESET}") " logged_in_via_input
     logged_in_via=$(trim "$logged_in_via_input") # From _utils.sh
     echo "" # Extra space
     if [[ "$(echo "$logged_in_via" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
@@ -54,7 +54,7 @@ add_entry() {
   if [[ -n "$logged_in_via" ]]; then
     # Prompt for linked email (mandatory)
     while true; do
-      read -p "$(printf "${YELLOW}📧 Enter the email used for ${BOLD}%s${RESET} (cannot be empty, type 'C' to cancel): ${RESET}" "$logged_in_via")" linked_email_input
+      read -rp "$(printf "${YELLOW}📧 Enter the email used for ${BOLD}%s${RESET} (cannot be empty, type 'C' to cancel): ${RESET}" "$logged_in_via")" linked_email_input
       linked_email=$(trim "$linked_email_input") # From _utils.sh
       echo "" # Extra space
       if [[ "$(echo "$linked_email" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
@@ -68,14 +68,14 @@ add_entry() {
     done
 
     # Prompt for username (optional)
-    read -p "$(printf "${YELLOW}👤 Enter a username for this service (optional, leave blank if none):${RESET} ")" username_input
+    read -rp "$(printf "${YELLOW}👤 Enter a username for this service (optional, leave blank if none):${RESET} ")" username_input
     username=$(trim "$username_input")
     echo "" # Extra space
 
     email=""        # Ensure email is empty if logging in via another service
   else
     while true; do
-      read -p "$(printf "${YELLOW}📧 Enter your Email for this site (cannot be empty, or type 'U' to use username):${RESET} ") " email_input
+      read -rp "$(printf "${YELLOW}📧 Enter your Email for this site (cannot be empty, or type 'U' to use username):${RESET} ") " email_input
       email=$(trim "$email_input") # From _utils.sh
       echo "" # Extra space
       if [[ "$(echo "$email" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
@@ -86,7 +86,7 @@ add_entry() {
       if [[ "$(echo "$email" | tr '[:upper:]' '[:lower:]')" == "u" ]]; then
         # User wants to use username instead of email (mandatory)
         while true; do
-          read -p "$(printf "${YELLOW}👤 Enter your Username for this site (cannot be empty):${RESET} ") " username_input
+          read -rp "$(printf "${YELLOW}👤 Enter your Username for this site (cannot be empty):${RESET} ") " username_input
           username=$(trim "$username_input")
           echo "" # Extra space
           if [[ "$(echo "$username" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
@@ -103,7 +103,7 @@ add_entry() {
       fi
       if [[ -n "$email" ]]; then
         # Optionally prompt for username (can leave blank)
-        read -p "$(printf "${YELLOW}👤 Enter a username for this site (optional, leave blank if none):${RESET} ")" username_input
+        read -rp "$(printf "${YELLOW}👤 Enter a username for this site (optional, leave blank if none):${RESET} ")" username_input
         username=$(trim "$username_input")
         echo "" # Extra space
         break
@@ -116,7 +116,7 @@ add_entry() {
 
   local recovery_email_input
   while true; do
-    read -p "$(printf "${YELLOW}🚨 Recovery Email (optional, leave blank if none):${RESET} ") " recovery_email_input
+    read -rp "$(printf "${YELLOW}🚨 Recovery Email (optional, leave blank if none):${RESET} ") " recovery_email_input
     recovery_email=$(trim "$recovery_email_input") # From _utils.sh
     echo "" # Extra space
     if [[ "$(echo "$recovery_email" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
@@ -129,7 +129,7 @@ add_entry() {
 
   local use_generator
   while true; do
-    read -p "$(printf "${YELLOW}🔑 Generate a random password for this entry? (${BOLD}y/N${RESET}${YELLOW}):${RESET}") " use_generator_input
+    read -rp "$(printf "${YELLOW}🔑 Generate a random password for this entry? (${BOLD}y/N${RESET}${YELLOW}):${RESET}") " use_generator_input
     use_generator=$(trim "${use_generator_input:-n}") # Default to 'n'
     echo "" # Extra space
     if [[ "$(echo "$use_generator" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
@@ -147,7 +147,7 @@ add_entry() {
   if [[ "$use_generator" =~ ^[yY]$ ]]; then
     local length
     while true; do
-      read -p "$(printf "${YELLOW}🔢 Password length (default: ${BOLD}12${RESET}${YELLOW}):${RESET}") " length_input
+      read -rp "$(printf "${YELLOW}🔢 Password length (default: ${BOLD}12${RESET}${YELLOW}):${RESET}") " length_input
       length_input=$(trim "$length_input") # From _utils.sh
       echo "" # Extra space
       if [[ "$(echo "$length_input" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
@@ -165,7 +165,7 @@ add_entry() {
 
     local upper numbers symbols
     while true; do
-      read -p "$(printf "${YELLOW}⬆️ Include uppercase letters? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " upper_input
+      read -rp "$(printf "${YELLOW}⬆️ Include uppercase letters? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " upper_input
       upper=$(trim "${upper_input:-y}") # Default to 'y'
       echo "" # Extra space
       if [[ "$(echo "$upper" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
@@ -181,7 +181,7 @@ add_entry() {
     done
 
     while true; do
-      read -p "$(printf "${YELLOW}🔢 Include numbers? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " numbers_input
+      read -rp "$(printf "${YELLOW}🔢 Include numbers? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " numbers_input
       numbers=$(trim "${numbers_input:-y}") # Default to 'y'
       echo "" # Extra space
       if [[ "$(echo "$numbers" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
@@ -197,7 +197,7 @@ add_entry() {
     done
 
     while true; do
-      read -p "$(printf "${YELLOW}🔣 Include symbols? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " symbols_input
+      read -rp "$(printf "${YELLOW}🔣 Include symbols? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " symbols_input
       symbols=$(trim "${symbols_input:-y}") # Default to 'y'
       echo "" # Extra space
       if [[ "$(echo "$symbols" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
@@ -303,7 +303,7 @@ add_entry() {
 
   local confirm_save
   while true; do
-    read -p "$(printf "${YELLOW}Do you want to ${BOLD}SAVE${RESET}${YELLOW} this entry? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " confirm_save_input
+    read -rp "$(printf "${YELLOW}Do you want to ${BOLD}SAVE${RESET}${YELLOW} this entry? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " confirm_save_input
     confirm_save=$(trim "${confirm_save_input:-y}") # From _utils.sh - Default to 'y'
     echo "" # Extra space
     if [[ "$(echo "$confirm_save" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
@@ -341,7 +341,8 @@ edit_entry() {
     return
   fi
 
-  local num_entries=$(echo "$entries_json" | jq 'length')
+  local num_entries
+  num_entries=$(echo "$entries_json" | jq 'length')
 
   if [[ "$num_entries" -eq 0 ]]; then
     echo -e "${YELLOW}No entries to edit. Please add some first.${RESET}"
@@ -416,11 +417,12 @@ edit_entry() {
 
   local selected_index
   while true; do
-    read -p "$(printf "${YELLOW}Enter the number of the entry to edit [1-%d]:${RESET} " "$num_entries")" selected_index_input
+    read -rp "$(printf "${YELLOW}Enter the number of the entry to edit [1-%d]:${RESET} " "$num_entries")" selected_index_input
     selected_index=$(trim "$selected_index_input") # From _utils.sh
     echo "" # Extra space
 
-    local lower_input=$(echo "$selected_index" | tr '[:upper:]' '[:lower:]')
+    local lower_input
+    lower_input=$(echo "$selected_index" | tr '[:upper:]' '[:lower:]')
     if [[ "$lower_input" == "c" ]]; then
       echo -e "${CYAN}Operation cancelled. Returning to main menu.${RESET}"
       pause # From _utils.sh
@@ -438,14 +440,22 @@ edit_entry() {
   local current_entry_json
   current_entry_json=$(echo "$entries_json" | jq ".[$((selected_index - 1))]")
 
-  local current_website=$(echo "$current_entry_json" | jq -r '.website')
-  local current_email=$(echo "$current_entry_json" | jq -r '.email // ""')
-  local current_username=$(echo "$current_entry_json" | jq -r '.username // ""')
-  local current_password=$(echo "$current_entry_json" | jq -r '.password // ""')
-  local current_logged_in_via=$(echo "$current_entry_json" | jq -r '.logged_in_via // ""')
-  local current_linked_email=$(echo "$current_entry_json" | jq -r '.linked_email // ""')
-  local current_recovery_email=$(echo "$current_entry_json" | jq -r '.recovery_email // ""') # New field
-  local current_added=$(echo "$current_entry_json" | jq -r '.added')
+  local current_website
+  current_website=$(echo "$current_entry_json" | jq -r '.website')
+  local current_email
+  current_email=$(echo "$current_entry_json" | jq -r '.email // ""')
+  local current_username
+  current_username=$(echo "$current_entry_json" | jq -r '.username // ""')
+  local current_password
+  current_password=$(echo "$current_entry_json" | jq -r '.password // ""')
+  local current_logged_in_via
+  current_logged_in_via=$(echo "$current_entry_json" | jq -r '.logged_in_via // ""')
+  local current_linked_email
+  current_linked_email=$(echo "$current_entry_json" | jq -r '.linked_email // ""')
+  local current_recovery_email
+  current_recovery_email=$(echo "$current_entry_json" | jq -r '.recovery_email // ""') # New field
+  local current_added
+  current_added=$(echo "$current_entry_json" | jq -r '.added')
 
   # --- Display preview of the selected entry ---
   echo -e "${BOLD}${BLUE}--- Currently Selected Entry (#${selected_index}) ---${RESET}"
@@ -473,10 +483,11 @@ edit_entry() {
   # Prompt for new values, handling "X" for remove and "C" for cancel
   local new_website="$current_website"
   while true; do
-    read -p "$(printf "${YELLOW}🌐 Update Website/Service Name (current: ${BOLD}%s${RESET}, cannot be empty):${RESET} " "$current_website")" new_website_input
+    read -rp "$(printf "${YELLOW}🌐 Update Website/Service Name (current: ${BOLD}%s${RESET}, cannot be empty):${RESET} " "$current_website")" new_website_input
     new_website_input=$(trim "${new_website_input}") # From _utils.sh
     echo "" # Extra space
-    local lower_input=$(echo "$new_website_input" | tr '[:upper:]' '[:lower:]')
+    local lower_input
+    lower_input=$(echo "$new_website_input" | tr '[:upper:]' '[:lower:]')
     if [[ "$lower_input" == "c" ]]; then
       echo -e "${CYAN}Operation cancelled. Returning to main menu.${RESET}"
       pause # From _utils.sh
@@ -552,10 +563,11 @@ edit_entry() {
   local new_password=""
   local use_generator_choice # Renamed to avoid clash with potential 'use_generator' from password generation block
   while true; do
-    read -p "$(printf "${YELLOW}🔑 Generate a new random password for this entry? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " use_generator_choice_input
+    read -rp "$(printf "${YELLOW}🔑 Generate a new random password for this entry? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " use_generator_choice_input
     use_generator_choice_input=$(trim "${use_generator_choice_input:-y}") # From _utils.sh - Default to 'y'
     echo "" # Extra space
-    local lower_input=$(echo "$use_generator_choice_input" | tr '[:upper:]' '[:lower:]')
+    local lower_input
+    lower_input=$(echo "$use_generator_choice_input" | tr '[:upper:]' '[:lower:]')
     if [[ "$lower_input" == "c" ]]; then
       echo -e "${CYAN}Password generation cancelled. Returning to main menu.${RESET}"
       pause # From _utils.sh
@@ -572,10 +584,11 @@ edit_entry() {
   if [[ "$use_generator_choice" =~ ^[yY]$ ]]; then
     local length
     while true; do
-      read -p "$(printf "${YELLOW}🔢 New password length (default: ${BOLD}12${RESET}${YELLOW}):${RESET}") " length_input
+      read -rp "$(printf "${YELLOW}🔢 New password length (default: ${BOLD}12${RESET}${YELLOW}):${RESET}") " length_input
       length_input=$(trim "$length_input") # From _utils.sh
       echo "" # Extra space
-      local lower_input=$(echo "$length_input" | tr '[:upper:]' '[:lower:]')
+      local lower_input
+      lower_input=$(echo "$length_input" | tr '[:upper:]' '[:lower:]')
       if [[ "$lower_input" == "c" ]]; then
         echo -e "${CYAN}Password generation cancelled. Returning to main menu.${RESET}"
         pause # From _utils.sh
@@ -591,10 +604,11 @@ edit_entry() {
 
     local upper numbers symbols
     while true; do
-      read -p "$(printf "${YELLOW}⬆️ Include uppercase letters? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " upper_input
+      read -rp "$(printf "${YELLOW}⬆️ Include uppercase letters? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " upper_input
       upper=$(trim "${upper_input:-y}") # From _utils.sh - Default to 'y'
       echo "" # Extra space
-      local lower_input=$(echo "$upper_input" | tr '[:upper:]' '[:lower:]')
+      local lower_input
+      lower_input=$(echo "$upper_input" | tr '[:upper:]' '[:lower:]')
       if [[ "$lower_input" == "c" ]]; then
         echo -e "${CYAN}Password generation cancelled. Returning to main menu.${RESET}"
         pause # From _utils.sh
@@ -608,10 +622,11 @@ edit_entry() {
     done
 
     while true; do
-      read -p "$(printf "${YELLOW}🔢 Include numbers? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " numbers_input
+      read -rp "$(printf "${YELLOW}🔢 Include numbers? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " numbers_input
       numbers=$(trim "${numbers_input:-y}") # From _utils.sh - Default to 'y'
       echo "" # Extra space
-      local lower_input=$(echo "$numbers_input" | tr '[:upper:]' '[:lower:]')
+      local lower_input
+      lower_input=$(echo "$numbers_input" | tr '[:upper:]' '[:lower:]')
       if [[ "$lower_input" == "c" ]]; then
         echo -e "${CYAN}Password generation cancelled. Returning to main menu.${RESET}"
         pause # From _utils.sh
@@ -625,10 +640,11 @@ edit_entry() {
     done
 
     while true; do
-      read -p "$(printf "${YELLOW}🔣 Include symbols? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " symbols_input
+      read -rp "$(printf "${YELLOW}🔣 Include symbols? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " symbols_input
       symbols=$(trim "${symbols_input:-y}") # From _utils.sh - Default to 'y'
       echo "" # Extra space
-      local lower_input=$(echo "$symbols_input" | tr '[:upper:]' '[:lower:]')
+      local lower_input
+      lower_input=$(echo "$symbols_input" | tr '[:upper:]' '[:lower:]')
       if [[ "$lower_input" == "c" ]]; then
         echo -e "${CYAN}Password generation cancelled. Returning to main menu.${RESET}"
         pause # From _utils.sh
@@ -654,7 +670,8 @@ edit_entry() {
     fi
   echo "" # Extra space
 
-  local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+  local timestamp
+  timestamp=$(date "+%Y-%m-%d %H:%M:%S")
 
   # Build the updated entry dynamically, removing fields if their new value is empty
   local updated_entry_json_builder="{"
@@ -700,10 +717,11 @@ edit_entry() {
   echo "" # Extra space
 
   while true; do
-    read -p "$(printf "${YELLOW}Do you want to ${BOLD}SAVE${RESET}${YELLOW} these changes? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " confirm_update_input
+    read -rp "$(printf "${YELLOW}Do you want to ${BOLD}SAVE${RESET}${YELLOW} these changes? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " confirm_update_input
     confirm_update=$(trim "${confirm_update_input:-y}") # From _utils.sh - Default to 'y'
     echo "" # Extra space
-    local lower_input=$(echo "$confirm_update" | tr '[:upper:]' '[:lower:]')
+    local lower_input
+    lower_input=$(echo "$confirm_update" | tr '[:upper:]' '[:lower:]')
     if [[ "$lower_input" == "c" ]]; then
       echo -e "${CYAN}Changes not saved. Returning to main menu.${RESET}"
       pause # From _utils.sh
@@ -739,7 +757,8 @@ remove_entry() {
     return
   fi
 
-  local num_entries=$(echo "$entries_json" | jq 'length')
+  local num_entries
+  num_entries=$(echo "$entries_json" | jq 'length')
 
   if [[ "$num_entries" -eq 0 ]]; then
     echo -e "${YELLOW}No entries to remove. Please add some first.${RESET}"
@@ -817,11 +836,12 @@ remove_entry() {
   local valid_indices=()
 
   while true; do
-    read -p "$(printf "${YELLOW}Enter numbers of entries to remove (e.g., '${BOLD}1,3,5${RESET}${YELLOW}'):${RESET} ") " selected_indices_str_input
+    read -rp "$(printf "${YELLOW}Enter numbers of entries to remove (e.g., '${BOLD}1,3,5${RESET}${YELLOW}'):${RESET} ") " selected_indices_str_input
     selected_indices_str=$(trim "$selected_indices_str_input") # From _utils.sh
     echo "" # Extra space
 
-    local lower_input=$(echo "$selected_indices_str" | tr '[:upper:]' '[:lower:]')
+    local lower_input
+    lower_input=$(echo "$selected_indices_str" | tr '[:upper:]' '[:lower:]')
     if [[ "$lower_input" == "c" ]]; then
       echo -e "${CYAN}Operation cancelled. Returning to main menu.${RESET}"
       pause # From _utils.sh
@@ -833,7 +853,8 @@ remove_entry() {
     local all_valid=true
 
     for idx_str in "${selected_indices[@]}"; do
-      local idx=$(trim "$idx_str") # From _utils.sh
+      local idx
+      idx=$(trim "$idx_str") # From _utils.sh
       if [[ "$idx" =~ ^[0-9]+$ ]] && (( idx >= 1 && idx <= num_entries )); then
         valid_indices+=("$idx")
       else
@@ -905,10 +926,11 @@ remove_entry() {
 
   local confirm_removal
   while true; do
-    read -p "$(printf "${YELLOW}Are you ${BOLD}SURE${RESET}${YELLOW} you want to PERMANENTLY remove these entries? (${RED}y/N${RESET}${YELLOW}):${RESET}") " confirm_removal_input
+    read -rp "$(printf "${YELLOW}Are you ${BOLD}SURE${RESET}${YELLOW} you want to PERMANENTLY remove these entries? (${RED}y/N${RESET}${YELLOW}):${RESET}") " confirm_removal_input
     confirm_removal=$(trim "${confirm_removal_input:-n}") # From _utils.sh - Default to 'n'
     echo "" # Extra space
-    local lower_input=$(echo "$confirm_removal" | tr '[:upper:]' '[:lower:]')
+    local lower_input
+    lower_input=$(echo "$confirm_removal" | tr '[:upper:]' '[:lower:]')
     if [[ "$lower_input" == "c" ]]; then
       echo -e "${CYAN}Removal cancelled. Returning to main menu.${RESET}"
       pause # From _utils.sh

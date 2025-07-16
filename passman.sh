@@ -98,7 +98,8 @@ main_loop() {
     echo -e "${CYAN}Attempting to decrypt credentials...${RESET}"
     # decrypt_data is from _crypto.sh
     # Redirect stderr of decrypt_data to /dev/null to suppress OpenSSL warnings/errors
-    local decrypted_content=$(decrypt_data "$ENC_JSON_FILE" "$MASTER_PASSWORD" 2>/dev/null)
+    local decrypted_content
+    decrypted_content=$(decrypt_data "$ENC_JSON_FILE" "$MASTER_PASSWORD" 2>/dev/null)
     local decrypt_status=$?
 
     if [[ "$decrypt_status" -ne 0 ]]; then
@@ -134,7 +135,7 @@ main_loop() {
       echo -e "${BOLD}6)${RESET} ${YELLOW}Quit${RESET}"
       echo -e "${BOLD}7)${RESET} ${YELLOW}Change master password${RESET}"
       echo "" # Extra space
-      read -p "$(printf "${YELLOW}Enter your choice [1-7]:${RESET} ") " choice
+      read -rp "$(printf "${YELLOW}Enter your choice [1-7]:${RESET} ") " choice
       choice=$(trim "$choice") # trim is from _utils.sh
       echo "" # Extra space
 

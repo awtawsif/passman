@@ -44,7 +44,8 @@ change_master_password() {
   fi
 
   # Encrypt the in-memory data with the new password
-  local temp_encrypted_file=$(mktemp)
+  local temp_encrypted_file
+  temp_encrypted_file=$(mktemp)
   if ! encrypt_data "$CREDENTIALS_DATA" "$new_pass" > "$temp_encrypted_file" 2>/dev/null; then
     echo -e "${RED}❌ Failed to encrypt data with new password. Aborting.${RESET}"
     rm -f "$temp_encrypted_file"
