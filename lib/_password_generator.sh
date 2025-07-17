@@ -10,6 +10,8 @@ set -o pipefail
 
 # Dependencies:
 # None explicit, but _colors.sh provides variables used in calling functions' prompts.
+# Uses global variables: DEFAULT_PASSWORD_LENGTH, DEFAULT_PASSWORD_UPPER,
+# DEFAULT_PASSWORD_NUMBERS, DEFAULT_PASSWORD_SYMBOLS from _config.sh.
 
 # Generates a random password based on specified criteria.
 # Arguments:

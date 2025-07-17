@@ -30,7 +30,7 @@ source "${SCRIPT_DIR}/lib/_config.sh"            # Configuration management (new
 
 # --- Global Variables (Managed by main_loop and cleanup_on_exit) ---
 # Path to the configuration directory (e.g., where passman.conf is stored)
-CONFIG_DIR="${SCRIPT_DIR}" # You could change this to ~/.config/passman for system-wide config
+CONFIG_DIR="${HOME}/.config/passman" # Changed to a more standard XDG Base Directory location
 # Path to the configuration file
 CONFIG_FILE="${CONFIG_DIR}/passman.conf"
 # Default filename for the encrypted credentials
@@ -40,6 +40,14 @@ DEFAULT_ENC_FILENAME="credentials.json.enc"
 SAVE_LOCATION=""
 # The full path to the securely encrypted file. This will be set dynamically.
 ENC_JSON_FILE=""
+
+# Global config variables, initialized with their defaults (will be overwritten by load_config if specified in file)
+DEFAULT_PASSWORD_LENGTH=12
+DEFAULT_PASSWORD_UPPER="y"
+DEFAULT_PASSWORD_NUMBERS="y"
+DEFAULT_PASSWORD_SYMBOLS="y"
+CLIPBOARD_CLEAR_DELAY=10 # seconds
+DEFAULT_SEARCH_MODE="and" # "and" or "or"
 
 # Stores the master password during the session (critical for crypto functions).
 MASTER_PASSWORD=""
@@ -76,8 +84,8 @@ main_loop() {
   # Ensure all necessary external tools (jq, openssl) are installed
   check_dependencies
 
-  # Load the saved configuration for file location and set ENC_JSON_FILE
-  load_config_and_set_paths
+  # Load the saved configuration for file location and other settings, sets ENC_JSON_FILE
+  load_config
 
   # Handle initial setup or regular login
   if [[ ! -f "$ENC_JSON_FILE" ]]; then
@@ -148,7 +156,7 @@ main_loop() {
       echo -e "${BOLD}5)${RESET} ${YELLOW}Remove entry${RESET}"
       echo -e "${BOLD}6)${RESET} ${YELLOW}Quit${RESET}"
       echo -e "${BOLD}7)${RESET} ${YELLOW}Change master password${RESET}"
-      echo -e "${BOLD}8)${RESET} ${YELLOW}Change file saving location${RESET}" # New option
+      echo -e "${BOLD}8)${RESET} ${YELLOW}Manage Settings${RESET}" # Updated menu item
       echo "" # Extra space
       read -rp "$(printf "${YELLOW}Enter your choice [1-8]:${RESET} ") " choice
       choice=$(trim "$choice") # trim is from _utils.sh
@@ -162,7 +170,7 @@ main_loop() {
         5) remove_entry ;; # from _crud_operations.sh
         6) echo -e "${CYAN}👋 Goodbye! Your data is securely locked.${RESET}"; exit 0 ;; # Exits, triggering trap
         7) change_master_password ;; # from _change_master.sh
-        8) change_save_location ;; # from _config.sh (new)
+        8) manage_settings ;; # from _config.sh (new)
         *) echo -e "${RED}❌ Invalid option. Please enter a number between ${BOLD}1${RESET}${RED} and ${BOLD}8${RESET}${RED}.${RESET}" ;;
       esac
     done

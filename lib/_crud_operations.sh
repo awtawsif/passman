@@ -13,6 +13,8 @@ set -o pipefail
 # - _utils.sh (for clear_screen, pause, trim, get_optional_input_with_remove, get_mandatory_input_conditional)
 # - _data_storage.sh (for load_entries, save_entries)
 # - _password_generator.sh (for generate_password)
+# Uses global variables: DEFAULT_PASSWORD_LENGTH, DEFAULT_PASSWORD_UPPER,
+# DEFAULT_PASSWORD_NUMBERS, DEFAULT_PASSWORD_SYMBOLS from _config.sh.
 
 # Prompts the user for new credential details and adds them to the JSON file.
 add_entry() {
@@ -145,75 +147,9 @@ add_entry() {
   done
 
   if [[ "$use_generator" =~ ^[yY]$ ]]; then
-    local length
-    while true; do
-      read -rp "$(printf "${YELLOW}🔢 Password length (default: ${BOLD}12${RESET}${YELLOW}):${RESET}") " length_input
-      length_input=$(trim "$length_input") # From _utils.sh
-      echo "" # Extra space
-      if [[ "$(echo "$length_input" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
-        echo -e "${CYAN}Password generation cancelled. Returning to main menu.${RESET}"
-        pause # From _utils.sh
-        return
-      fi
-      length=${length_input:-12}
-      if [[ "$length" =~ ^[0-9]+$ && "$length" -ge 1 ]]; then
-        break
-      fi
-      echo -e "${RED}🚫 Invalid length. Please enter a positive number or type '${CYAN}C${RED}' to cancel.${RESET}"
-      echo "" # Extra space
-    done
-
-    local upper numbers symbols
-    while true; do
-      read -rp "$(printf "${YELLOW}⬆️ Include uppercase letters? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " upper_input
-      upper=$(trim "${upper_input:-y}") # Default to 'y'
-      echo "" # Extra space
-      if [[ "$(echo "$upper" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
-        echo -e "${CYAN}Password generation cancelled. Returning to main menu.${RESET}"
-        pause # From _utils.sh
-        return
-      fi
-      if [[ "$upper" =~ ^[yYnN]$ ]]; then
-        break
-      fi
-      echo -e "${RED}🚫 Invalid input. Please enter '${BOLD}Y${RESET}${RED}' for Yes, '${BOLD}N${RESET}${RED}' for No, or '${CYAN}C${RED}' to cancel.${RESET}"
-      echo "" # Extra space
-    done
-
-    while true; do
-      read -rp "$(printf "${YELLOW}🔢 Include numbers? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " numbers_input
-      numbers=$(trim "${numbers_input:-y}") # Default to 'y'
-      echo "" # Extra space
-      if [[ "$(echo "$numbers" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
-        echo -e "${CYAN}Password generation cancelled. Returning to main menu.${RESET}"
-        pause # From _utils.sh
-        return
-      fi
-      if [[ "$numbers" =~ ^[yYnN]$ ]]; then
-        break
-      fi
-      echo -e "${RED}🚫 Invalid input. Please enter '${BOLD}Y${RESET}${RED}' for Yes, '${BOLD}N${RESET}${RED}' for No, or '${CYAN}C${RED}' to cancel.${RESET}"
-      echo "" # Extra space
-    done
-
-    while true; do
-      read -rp "$(printf "${YELLOW}🔣 Include symbols? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " symbols_input
-      symbols=$(trim "${symbols_input:-y}") # Default to 'y'
-      echo "" # Extra space
-      if [[ "$(echo "$symbols" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
-        echo -e "${CYAN}Password generation cancelled. Returning to main menu.${RESET}"
-        pause # From _utils.sh
-        return
-      fi
-      if [[ "$symbols" =~ ^[yYnN]$ ]]; then
-        break
-      fi
-      echo -e "${RED}🚫 Invalid input. Please enter '${BOLD}Y${RESET}${RED}' for Yes, '${BOLD}N${RESET}${RED}' for No, or '${CYAN}C${RED}' to cancel.${RESET}"
-      echo "" # Extra space
-    done
-
-    password=$(generate_password "$length" "$upper" "$numbers" "$symbols") # From _password_generator.sh
-    echo -e "${GREEN}🔐 Generated password: ${BOLD}$password${RESET}\n"
+    # Directly use global defaults for password generation when adding a new entry
+    password=$(generate_password "$DEFAULT_PASSWORD_LENGTH" "$DEFAULT_PASSWORD_UPPER" "$DEFAULT_PASSWORD_NUMBERS" "$DEFAULT_PASSWORD_SYMBOLS") # From _password_generator.sh
+    echo -e "${GREEN}🔐 Generated password using default settings: ${BOLD}$password${RESET}\n"
   else
     # If not generating, prompt for manual password entry
     if [[ -n "$logged_in_via" ]]; then
@@ -263,18 +199,19 @@ add_entry() {
 
   # Create a new JSON object for the entry, dynamically adding fields if they are not empty
   local new_entry_json_builder="{"
-  new_entry_json_builder+="\"website\": \"$website\""
-  [[ -n "$email" ]] && new_entry_json_builder+=", \"email\": \"$email\""
-  [[ -n "$username" ]] && new_entry_json_builder+=", \"username\": \"$username\""
-  [[ -n "$password" ]] && new_entry_json_builder+=", \"password\": \"$password\""
-  [[ -n "$logged_in_via" ]] && new_entry_json_builder+=", \"logged_in_via\": \"$logged_in_via\""
-  [[ -n "$linked_email" ]] && new_entry_json_builder+=", \"linked_email\": \"$linked_email\""
-  [[ -n "$recovery_email" ]] && new_entry_json_builder+=", \"recovery_email\": \"$recovery_email\""
+  new_entry_json_builder+="\"website\": \"$(jq -rR <<< "$website" )\"" # Use jq -rR for proper JSON string escaping
+  [[ -n "$email" ]] && new_entry_json_builder+=", \"email\": \"$(jq -rR <<< "$email" )\""
+  [[ -n "$username" ]] && new_entry_json_builder+=", \"username\": \"$(jq -rR <<< "$username" )\""
+  [[ -n "$password" ]] && new_entry_json_builder+=", \"password\": \"$(jq -rR <<< "$password" )\""
+  [[ -n "$logged_in_via" ]] && new_entry_json_builder+=", \"logged_in_via\": \"$(jq -rR <<< "$logged_in_via" )\""
+  [[ -n "$linked_email" ]] && new_entry_json_builder+=", \"linked_email\": \"$(jq -rR <<< "$linked_email" )\""
+  [[ -n "$recovery_email" ]] && new_entry_json_builder+=", \"recovery_email\": \"$(jq -rR <<< "$recovery_email" )\""
   new_entry_json_builder+=", \"added\": \"$timestamp\""
   new_entry_json_builder+="}"
 
   local new_entry_json
   new_entry_json=$(echo "$new_entry_json_builder" | jq '.')
+
 
   # Append the new entry to the existing JSON array and save it back
   local updated_entries_json
@@ -562,8 +499,8 @@ edit_entry() {
   local new_password=""
   local use_generator_choice # Renamed to avoid clash with potential 'use_generator' from password generation block
   while true; do
-    read -rp "$(printf "${YELLOW}🔑 Generate a new random password for this entry? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " use_generator_choice_input
-    use_generator_choice_input=$(trim "${use_generator_choice_input:-y}") # From _utils.sh - Default to 'y'
+    read -rp "$(printf "${YELLOW}🔑 Generate a new random password for this entry? (${BOLD}y/N${RESET}${YELLOW}):${RESET}") " use_generator_choice_input
+    use_generator_choice_input=$(trim "${use_generator_choice_input:-n}") # From _utils.sh - Default to 'n'
     echo "" # Extra space
     local lower_input
     lower_input=$(echo "$use_generator_choice_input" | tr '[:upper:]' '[:lower:]')
@@ -583,7 +520,7 @@ edit_entry() {
   if [[ "$use_generator_choice" =~ ^[yY]$ ]]; then
     local length
     while true; do
-      read -rp "$(printf "${YELLOW}🔢 New password length (default: ${BOLD}12${RESET}${YELLOW}):${RESET}") " length_input
+      read -rp "$(printf "${YELLOW}🔢 New password length (default: ${BOLD}%s${RESET}${YELLOW}):${RESET}" "$DEFAULT_PASSWORD_LENGTH")" length_input
       length_input=$(trim "$length_input") # From _utils.sh
       echo "" # Extra space
       local lower_input
@@ -593,7 +530,7 @@ edit_entry() {
         pause # From _utils.sh
         return
       fi
-      length=${length_input:-12}
+      length=${length_input:-$DEFAULT_PASSWORD_LENGTH} # Use global default
       if [[ "$length" =~ ^[0-9]+$ && "$length" -ge 1 ]]; then
         break
       fi
@@ -603,8 +540,8 @@ edit_entry() {
 
     local upper numbers symbols
     while true; do
-      read -rp "$(printf "${YELLOW}⬆️ Include uppercase letters? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " upper_input
-      upper=$(trim "${upper_input:-y}") # From _utils.sh - Default to 'y'
+      read -rp "$(printf "${YELLOW}⬆️ Include uppercase letters? (default: ${BOLD}%s${RESET}${YELLOW}, Y/n):${RESET}" "$DEFAULT_PASSWORD_UPPER")" upper_input
+      upper=$(trim "${upper_input:-$DEFAULT_PASSWORD_UPPER}") # Use global default
       echo "" # Extra space
       local lower_input
       lower_input=$(echo "$upper_input" | tr '[:upper:]' '[:lower:]')
@@ -621,8 +558,8 @@ edit_entry() {
     done
 
     while true; do
-      read -rp "$(printf "${YELLOW}🔢 Include numbers? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " numbers_input
-      numbers=$(trim "${numbers_input:-y}") # Default to 'y'
+      read -rp "$(printf "${YELLOW}🔢 Include numbers? (default: ${BOLD}%s${RESET}${YELLOW}, Y/n):${RESET}" "$DEFAULT_PASSWORD_NUMBERS")" numbers_input
+      numbers=$(trim "${numbers_input:-$DEFAULT_PASSWORD_NUMBERS}") # Use global default
       echo "" # Extra space
       local lower_input
       lower_input=$(echo "$numbers_input" | tr '[:upper:]' '[:lower:]')
@@ -634,13 +571,13 @@ edit_entry() {
       if [[ "$numbers" =~ ^[yYnN]$ ]]; then
         break
       fi
-      echo -e "${RED}🚫 Invalid input. Please enter '${BOLD}Y${RESET}${RED}' for Yes, '${BOLD}N${RESET}${RED}' for No, or '${CYAN}C${RED}' to cancel.${RESET}"
+      echo -e "${RED}🚫 Invalid input. Please enter '${BOLD}Y${RESET}${RED}' for Yes, '${BOLD}N${RED}' for No, or '${CYAN}C${RED}' to cancel.${RESET}"
       echo "" # Extra space
     done
 
     while true; do
-      read -rp "$(printf "${YELLOW}🔣 Include symbols? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " symbols_input
-      symbols=$(trim "${symbols_input:-y}") # Default to 'y'
+      read -rp "$(printf "${YELLOW}🔣 Include symbols? (default: ${BOLD}%s${RESET}${YELLOW}, Y/n):${RESET}" "$DEFAULT_PASSWORD_SYMBOLS")" symbols_input
+      symbols=$(trim "${symbols_input:-$DEFAULT_PASSWORD_SYMBOLS}") # Use global default
       echo "" # Extra space
       local lower_input
       lower_input=$(echo "$symbols_input" | tr '[:upper:]' '[:lower:]')
@@ -674,18 +611,19 @@ edit_entry() {
 
   # Build the updated entry dynamically, removing fields if their new value is empty
   local updated_entry_json_builder="{"
-  updated_entry_json_builder+="\"website\": \"$new_website\""
-  [[ -n "$new_email" ]] && updated_entry_json_builder+=", \"email\": \"$new_email\""
-  [[ -n "$new_username" ]] && updated_entry_json_builder+=", \"username\": \"$new_username\""
-  [[ -n "$new_password" ]] && updated_entry_json_builder+=", \"password\": \"$new_password\""
-  [[ -n "$actual_logged_in_via" ]] && updated_entry_json_builder+=", \"logged_in_via\": \"$actual_logged_in_via\""
-  [[ -n "$new_linked_email" ]] && updated_entry_json_builder+=", \"linked_email\": \"$new_linked_email\""
-  [[ -n "$new_recovery_email" ]] && updated_entry_json_builder+=", \"recovery_email\": \"$new_recovery_email\""
+  updated_entry_json_builder+="\"website\": \"$(jq -rR <<< "$new_website" )\"" # Use jq -rR for proper JSON string escaping
+  [[ -n "$new_email" ]] && updated_entry_json_builder+=", \"email\": \"$(jq -rR <<< "$new_email" )\""
+  [[ -n "$new_username" ]] && updated_entry_json_builder+=", \"username\": \"$(jq -rR <<< "$new_username" )\""
+  [[ -n "$new_password" ]] && updated_entry_json_builder+=", \"password\": \"$(jq -rR <<< "$new_password" )\""
+  [[ -n "$actual_logged_in_via" ]] && updated_entry_json_builder+=", \"logged_in_via\": \"$(jq -rR <<< "$actual_logged_in_via" )\""
+  [[ -n "$new_linked_email" ]] && updated_entry_json_builder+=", \"linked_email\": \"$(jq -rR <<< "$new_linked_email" )\""
+  [[ -n "$new_recovery_email" ]] && updated_entry_json_builder+=", \"recovery_email\": \"$(jq -rR <<< "$new_recovery_email" )\""
   updated_entry_json_builder+=", \"added\": \"$timestamp\""
   updated_entry_json_builder+="}"
 
   local updated_single_entry_json
   updated_single_entry_json=$(echo "$updated_entry_json_builder" | jq '.')
+
 
   # Update the entry in the JSON array
   local updated_entries_json
@@ -729,7 +667,7 @@ edit_entry() {
     if [[ "$confirm_update" =~ ^[yYnN]$ ]]; then
       break
     fi
-    echo -e "${RED}🚫 Invalid input. Please enter '${BOLD}Y${RESET}${RED}' for Yes, '${BOLD}N${RESET}${RED}' for No, or '${CYAN}C${RED}' to cancel.${RESET}"
+    echo -e "${RED}🚫 Invalid input. Please enter '${BOLD}Y${RESET}${RED}' for Yes, '${BOLD}N${RED}' for No, or '${CYAN}C${RED}' to cancel.${RESET}"
     echo "" # Extra space
   done
 
@@ -766,7 +704,7 @@ remove_entry() {
   fi
 
   # Display entries with numbers for selection
-  echo -e "${CYAN}Select one or more entries to remove by their numbers (comma-separated):${RESET}"
+  echo -e "${CYAN}Choose an entry to edit by its number:${RESET}"
   echo "" # Extra space
 
   # Define ANSI color codes for awk.
@@ -938,7 +876,7 @@ remove_entry() {
     if [[ "$confirm_removal" =~ ^[yYnN]$ ]]; then
       break
     fi
-    echo -e "${RED}🚫 Invalid input. Please enter '${BOLD}Y${RESET}${RED}' for Yes, '${BOLD}N${RESET}${RED}' for No, or '${CYAN}C${RED}' to cancel.${RESET}"
+    echo -e "${RED}🚫 Invalid input. Please enter '${BOLD}Y${RESET}${RED}' for Yes, '${BOLD}N${RED}' for No, or '${CYAN}C${RED}' to cancel.${RESET}"
     echo "" # Extra space
   done
 

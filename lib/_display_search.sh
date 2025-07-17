@@ -10,8 +10,9 @@ set -o pipefail
 
 # Dependencies:
 # - _colors.sh (for color variables like RED, GREEN, YELLOW, CYAN, BLUE, BOLD, RESET)
-# - _utils.sh (for clear_screen, pause, trim)
+# - _utils.sh (for clear_screen, pause, trim, copy_to_clipboard)
 # - _data_storage.sh (for load_entries)
+# Uses global variables: CLIPBOARD_CLEAR_DELAY, DEFAULT_SEARCH_MODE from _config.sh.
 
 # Searches for entries based on user-provided filters.
 search_entries() {
@@ -94,15 +95,17 @@ search_entries() {
     conditions+=("((.recovery_email // \"\") | ascii_downcase | contains(\"$(echo "$f_recovery_email" | sed 's/\\/\\\\/g' | sed 's/\"/\\"/g' | tr '[:upper:]' '[:lower:]')\"))")
   fi
 
-  # Ask user for filter mode (AND/OR)
-  local filter_mode="and"
+  # Ask user for filter mode (AND/OR), default to configured option
+  local filter_mode="$DEFAULT_SEARCH_MODE" # Use global default
   if [[ ${#conditions[@]} -gt 1 ]]; then
-    echo -e "${YELLOW}How should filters be combined?${RESET}"
+    echo -e "${YELLOW}How should filters be combined? (Current default: ${BOLD}${DEFAULT_SEARCH_MODE^^}${RESET}${YELLOW})${RESET}" # Show default
     echo -e "  ${BOLD}1)${RESET} Match ${BOLD}ALL${RESET} filters (AND)"
     echo -e "  ${BOLD}2)${RESET} Match ${BOLD}ANY${RESET} filter (OR)"
-    read -rp "$(printf "${YELLOW}Enter 1 for AND, 2 for OR [default: 1]:${RESET} ")" filter_mode_choice
+    read -rp "$(printf "${YELLOW}Enter 1 for AND, 2 for OR [default: Use configured default]:${RESET}") " filter_mode_choice
     filter_mode_choice=$(trim "$filter_mode_choice")
-    if [[ "$filter_mode_choice" == "2" ]]; then
+    if [[ "$filter_mode_choice" == "1" ]]; then
+      filter_mode="and"
+    elif [[ "$filter_mode_choice" == "2" ]]; then
       filter_mode="or"
     fi
   fi
@@ -230,6 +233,10 @@ search_entries() {
               copy_to_clipboard "$value_to_copy"
               if [[ $? -eq 0 ]]; then
                 echo -e "${GREEN}Copied to clipboard!${RESET}"
+                # Clear the copied value from clipboard after a short delay for security
+                if [[ "$CLIPBOARD_CLEAR_DELAY" -gt 0 ]]; then
+                  (sleep "$CLIPBOARD_CLEAR_DELAY" && copy_to_clipboard "") &>/dev/null & disown
+                fi
               fi
             else
               echo -e "${YELLOW}No value found for the selected field.${RESET}"
@@ -377,7 +384,9 @@ view_all_entries_menu() {
             if [[ $? -eq 0 ]]; then
               echo -e "${GREEN}Copied to clipboard!${RESET}"
               # Clear the copied value from clipboard after a short delay for security
-              (sleep 10 && copy_to_clipboard "") &>/dev/null & disown
+              if [[ "$CLIPBOARD_CLEAR_DELAY" -gt 0 ]]; then
+                (sleep "$CLIPBOARD_CLEAR_DELAY" && copy_to_clipboard "") &>/dev/null & disown
+              fi
             fi
           else
             echo -e "${YELLOW}No value found for the selected field.${RESET}"

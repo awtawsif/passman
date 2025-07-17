@@ -1,6 +1,7 @@
 #!/bin/bash
 # _config.sh
-# Handles configuration loading and saving, including the encrypted file location.
+# Handles configuration loading and saving, including the encrypted file location
+# and other user preferences.
 
 # --- Strict Mode for Robustness ---
 set -e
@@ -17,45 +18,98 @@ set -o pipefail
 # - DEFAULT_ENC_FILENAME
 # - SAVE_LOCATION (updated by this script)
 # - ENC_JSON_FILE (updated by this script)
+# New global config variables:
+# - DEFAULT_PASSWORD_LENGTH
+# - DEFAULT_PASSWORD_UPPER
+# - DEFAULT_PASSWORD_NUMBERS
+# - DEFAULT_PASSWORD_SYMBOLS
+# - CLIPBOARD_CLEAR_DELAY
+# - DEFAULT_SEARCH_MODE
 
-# Loads the configuration, specifically the SAVE_LOCATION.
-# If no config file exists, it defaults SAVE_LOCATION to SCRIPT_DIR.
-load_config_and_set_paths() {
+# Loads the configuration from the config file.
+# Sets global variables based on loaded values or defaults.
+load_config() {
   # Ensure CONFIG_DIR exists
   mkdir -p "$CONFIG_DIR"
 
-  if [[ -f "$CONFIG_FILE" ]]; then
-    # Read the save location from the config file
-    local loaded_location
-    loaded_location=$(<"$CONFIG_FILE")
-    # Trim whitespace from the loaded location
-    loaded_location=$(trim "$loaded_location")
+  # Set default values
+  SAVE_LOCATION="$SCRIPT_DIR"
+  DEFAULT_PASSWORD_LENGTH=12
+  DEFAULT_PASSWORD_UPPER="y"
+  DEFAULT_PASSWORD_NUMBERS="y"
+  DEFAULT_PASSWORD_SYMBOLS="y"
+  CLIPBOARD_CLEAR_DELAY=10 # seconds
+  DEFAULT_SEARCH_MODE="and" # "and" or "or"
 
-    # Check if the loaded location is a valid directory
-    if [[ -d "$loaded_location" ]]; then
-      SAVE_LOCATION="$loaded_location"
-      echo -e "${CYAN}Loaded save location: ${BOLD}${SAVE_LOCATION}${RESET}"
-    else
-      # If the configured path is invalid, reset to script directory and save this default
-      echo -e "${YELLOW}⚠️  Configured save location '${loaded_location}' does not exist or is not a directory. Resetting to script directory.${RESET}"
-      SAVE_LOCATION="$SCRIPT_DIR"
-      save_config_file_location # Save the corrected default
-    fi
+  if [[ -f "$CONFIG_FILE" ]]; then
+    echo -e "${CYAN}Loading configuration from: ${BOLD}${CONFIG_FILE}${RESET}"
+    # Read config file line by line, setting variables
+    while IFS='=' read -r key value || [[ -n "$key" ]]; do
+      # Remove leading/trailing whitespace and quotes from key and value
+      key=$(trim "$key")
+      value=$(trim "$value")
+      value="${value%\"}" # Remove trailing quote
+      value="${value#\"}" # Remove leading quote
+
+      case "$key" in
+        "SAVE_LOCATION")
+          # Expand tilde (~) to home directory if present
+          if [[ "$value" == "~"* ]]; then
+            value="${HOME}${value:1}"
+          fi
+          # Remove trailing slash if present, unless it's just "/"
+          value="${value%/}"
+
+          if [[ -d "$value" ]]; then
+            SAVE_LOCATION="$value"
+          else
+            echo -e "${YELLOW}⚠️  Configured save location '${value}' does not exist or is not a directory. Using default: ${BOLD}${SCRIPT_DIR}${RESET}"
+            SAVE_LOCATION="$SCRIPT_DIR"
+          fi
+          ;;
+        "DEFAULT_PASSWORD_LENGTH")
+          if [[ "$value" =~ ^[0-9]+$ ]] && (( value >= 1 )); then
+            DEFAULT_PASSWORD_LENGTH="$value"
+          else
+            echo -e "${YELLOW}⚠️ Invalid DEFAULT_PASSWORD_LENGTH in config. Using default: ${BOLD}12${RESET}"
+          fi
+          ;;
+        "DEFAULT_PASSWORD_UPPER") [[ "$value" =~ ^[yYnN]$ ]] && DEFAULT_PASSWORD_UPPER="$value" || echo -e "${YELLOW}⚠️ Invalid DEFAULT_PASSWORD_UPPER in config. Using default: ${BOLD}y${RESET}" ;;
+        "DEFAULT_PASSWORD_NUMBERS") [[ "$value" =~ ^[yYnN]$ ]] && DEFAULT_PASSWORD_NUMBERS="$value" || echo -e "${YELLOW}⚠️ Invalid DEFAULT_PASSWORD_NUMBERS in config. Using default: ${BOLD}y${RESET}" ;;
+        "DEFAULT_PASSWORD_SYMBOLS") [[ "$value" =~ ^[yYnN]$ ]] && DEFAULT_PASSWORD_SYMBOLS="$value" || echo -e "${YELLOW}⚠️ Invalid DEFAULT_PASSWORD_SYMBOLS in config. Using default: ${BOLD}y${RESET}" ;;
+        "CLIPBOARD_CLEAR_DELAY")
+          if [[ "$value" =~ ^[0-9]+$ ]] && (( value >= 0 )); then
+            CLIPBOARD_CLEAR_DELAY="$value"
+          else
+            echo -e "${YELLOW}⚠️ Invalid CLIPBOARD_CLEAR_DELAY in config. Using default: ${BOLD}10${RESET}"
+          fi
+          ;;
+        "DEFAULT_SEARCH_MODE") [[ "$value" == "and" || "$value" == "or" ]] && DEFAULT_SEARCH_MODE="$value" || echo -e "${YELLOW}⚠️ Invalid DEFAULT_SEARCH_MODE in config. Using default: ${BOLD}and${RESET}" ;;
+      esac
+    done < "$CONFIG_FILE"
   else
-    # First run or config file missing, default to script directory
-    SAVE_LOCATION="$SCRIPT_DIR"
-    echo -e "${YELLOW}No configuration file found. Defaulting save location to script directory: ${BOLD}${SAVE_LOCATION}${RESET}"
-    save_config_file_location # Save the default location
+    echo -e "${YELLOW}No configuration file found. Using default settings.${RESET}"
   fi
 
   # Set the global encrypted JSON file path based on the determined save location
   ENC_JSON_FILE="${SAVE_LOCATION}/${DEFAULT_ENC_FILENAME}"
+
+  # Always save config after loading to ensure file exists and defaults are written
+  save_config
 }
 
-# Saves the current SAVE_LOCATION to the configuration file.
-save_config_file_location() {
+# Saves the current configuration to the config file.
+save_config() {
   mkdir -p "$CONFIG_DIR" # Ensure config directory exists before writing
-  echo -n "$SAVE_LOCATION" > "$CONFIG_FILE"
+  {
+    echo "SAVE_LOCATION=\"$SAVE_LOCATION\""
+    echo "DEFAULT_PASSWORD_LENGTH=\"$DEFAULT_PASSWORD_LENGTH\""
+    echo "DEFAULT_PASSWORD_UPPER=\"$DEFAULT_PASSWORD_UPPER\""
+    echo "DEFAULT_PASSWORD_NUMBERS=\"$DEFAULT_PASSWORD_NUMBERS\""
+    echo "DEFAULT_PASSWORD_SYMBOLS=\"$DEFAULT_PASSWORD_SYMBOLS\""
+    echo "CLIPBOARD_CLEAR_DELAY=\"$CLIPBOARD_CLEAR_DELAY\""
+    echo "DEFAULT_SEARCH_MODE=\"$DEFAULT_SEARCH_MODE\""
+  } > "$CONFIG_FILE"
   if [[ $? -eq 0 ]]; then
     echo -e "${GREEN}✅ Configuration saved to ${BOLD}${CONFIG_FILE}${RESET}${GREEN}.${RESET}"
   else
@@ -163,7 +217,7 @@ change_save_location() {
 
   # Update global SAVE_LOCATION and save to config
   SAVE_LOCATION="$new_location"
-  save_config_file_location
+  save_config
 
   # Update the global ENC_JSON_FILE based on the new SAVE_LOCATION
   ENC_JSON_FILE="${SAVE_LOCATION}/${DEFAULT_ENC_FILENAME}"
@@ -201,4 +255,158 @@ change_save_location() {
   echo -e "${GREEN}✅ File saving location updated to: ${BOLD}${SAVE_LOCATION}${RESET}"
   echo -e "${CYAN}All future saves and loads will use this new location.${RESET}"
   pause
+}
+
+
+# Allows the user to view and modify various application settings.
+manage_settings() {
+  clear_screen
+  while true; do
+    echo -e "${BOLD}${MAGENTA}--- Manage Application Settings ---${RESET}"
+    echo -e "${CYAN}Configure various defaults for PassMan.${RESET}\n"
+
+    echo -e "${BOLD}1)${RESET} ${YELLOW}File Saving Location${RESET}: ${BOLD}${SAVE_LOCATION}${RESET}"
+    echo -e "${BOLD}2)${RESET} ${YELLOW}Default Password Length${RESET}: ${BOLD}${DEFAULT_PASSWORD_LENGTH}${RESET}"
+    echo -e "${BOLD}3)${RESET} ${YELLOW}Default Password Chars${RESET}: ${BOLD}U:${DEFAULT_PASSWORD_UPPER} N:${DEFAULT_PASSWORD_NUMBERS} S:${DEFAULT_PASSWORD_SYMBOLS}${RESET}"
+    echo -e "${BOLD}4)${RESET} ${YELLOW}Clipboard Clear Delay${RESET}: ${BOLD}${CLIPBOARD_CLEAR_DELAY} seconds${RESET}"
+    echo -e "${BOLD}5)${RESET} ${YELLOW}Default Search Mode${RESET}: ${BOLD}${DEFAULT_SEARCH_MODE}${RESET}"
+    echo -e "${BOLD}6)${RESET} ${YELLOW}Back to Main Menu${RESET}"
+    echo "" # Extra space
+
+    read -rp "$(printf "${YELLOW}Enter your choice [1-6]:${RESET} ") " choice
+    choice=$(trim "$choice")
+    echo "" # Extra space
+
+    case "$choice" in
+      1) # Change File Saving Location
+        change_save_location
+        ;;
+      2) # Change Default Password Length
+        local new_length
+        while true; do
+          read -rp "$(printf "${YELLOW}Enter new default password length (current: ${BOLD}%s${RESET}, min 1):${RESET} " "$DEFAULT_PASSWORD_LENGTH")" new_length_input
+          new_length=$(trim "$new_length_input")
+          echo "" # Extra space
+          if [[ "$(echo "$new_length" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
+            echo -e "${CYAN}Operation cancelled.${RESET}"
+            break 2 # Break out of inner and outer loop
+          fi
+          if [[ "$new_length" =~ ^[0-9]+$ ]] && (( new_length >= 1 )); then
+            DEFAULT_PASSWORD_LENGTH="$new_length"
+            save_config
+            echo -e "${GREEN}✅ Default password length updated.${RESET}"
+            break
+          fi
+          echo -e "${RED}🚫 Invalid length. Please enter a positive number.${RESET}"
+          echo "" # Extra space
+        done
+        ;;
+      3) # Change Default Password Char Sets
+        echo -e "${BOLD}${CYAN}--- Configure Default Password Characters ---${RESET}"
+        local new_upper new_numbers new_symbols
+
+        while true; do
+          read -rp "$(printf "${YELLOW}Include uppercase letters by default? (current: ${BOLD}%s${RESET}, Y/n):${RESET} " "$DEFAULT_PASSWORD_UPPER")" new_upper_input
+          new_upper=$(trim "${new_upper_input:-$DEFAULT_PASSWORD_UPPER}")
+          echo "" # Extra space
+          if [[ "$(echo "$new_upper" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
+            echo -e "${CYAN}Operation cancelled.${RESET}"
+            break 2
+          fi
+          if [[ "$new_upper" =~ ^[yYnN]$ ]]; then
+            DEFAULT_PASSWORD_UPPER="$new_upper"
+            break
+          fi
+          echo -e "${RED}🚫 Invalid input. Please enter Y or N.${RESET}"
+          echo "" # Extra space
+        done
+
+        while true; do
+          read -rp "$(printf "${YELLOW}Include numbers by default? (current: ${BOLD}%s${RESET}, Y/n):${RESET} " "$DEFAULT_PASSWORD_NUMBERS")" new_numbers_input
+          new_numbers=$(trim "${new_numbers_input:-$DEFAULT_PASSWORD_NUMBERS}")
+          echo "" # Extra space
+          if [[ "$(echo "$new_numbers" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
+            echo -e "${CYAN}Operation cancelled.${RESET}"
+            break 2
+          fi
+          if [[ "$new_numbers" =~ ^[yYnN]$ ]]; then
+            DEFAULT_PASSWORD_NUMBERS="$new_numbers"
+            break
+          fi
+          echo -e "${RED}🚫 Invalid input. Please enter Y or N.${RESET}"
+          echo "" # Extra space
+        done
+
+        while true; do
+          read -rp "$(printf "${YELLOW}Include symbols by default? (current: ${BOLD}%s${RESET}, Y/n):${RESET} " "$DEFAULT_PASSWORD_SYMBOLS")" new_symbols_input
+          new_symbols=$(trim "${new_symbols_input:-$DEFAULT_PASSWORD_SYMBOLS}")
+          echo "" # Extra space
+          if [[ "$(echo "$new_symbols" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
+            echo -e "${CYAN}Operation cancelled.${RESET}"
+            break 2
+          fi
+          if [[ "$new_symbols" =~ ^[yYnN]$ ]]; then
+            DEFAULT_PASSWORD_SYMBOLS="$new_symbols"
+            break
+          fi
+          echo -e "${RED}🚫 Invalid input. Please enter Y or N.${RESET}"
+          echo "" # Extra space
+        done
+        save_config
+        echo -e "${GREEN}✅ Default password character sets updated.${RESET}"
+        ;;
+      4) # Change Clipboard Clear Delay
+        local new_delay
+        while true; do
+          read -rp "$(printf "${YELLOW}Enter new clipboard clear delay in seconds (current: ${BOLD}%s${RESET}, 0 to disable):${RESET} " "$CLIPBOARD_CLEAR_DELAY")" new_delay_input
+          new_delay=$(trim "$new_delay_input")
+          echo "" # Extra space
+          if [[ "$(echo "$new_delay" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
+            echo -e "${CYAN}Operation cancelled.${RESET}"
+            break 2
+          fi
+          if [[ "$new_delay" =~ ^[0-9]+$ ]] && (( new_delay >= 0 )); then
+            CLIPBOARD_CLEAR_DELAY="$new_delay"
+            save_config
+            echo -e "${GREEN}✅ Clipboard clear delay updated.${RESET}"
+            break
+          fi
+          echo -e "${RED}🚫 Invalid delay. Please enter a non-negative number.${RESET}"
+          echo "" # Extra space
+        done
+        ;;
+      5) # Change Default Search Mode
+        local new_search_mode
+        while true; do
+          read -rp "$(printf "${YELLOW}Set default search mode (current: ${BOLD}%s${RESET}, 'and' or 'or'):${RESET} " "$DEFAULT_SEARCH_MODE")" new_search_mode_input
+          new_search_mode=$(trim "$new_search_mode_input")
+          echo "" # Extra space
+          local lower_input
+          lower_input=$(echo "$new_search_mode" | tr '[:upper:]' '[:lower:]')
+          if [[ "$lower_input" == "c" ]]; then
+            echo -e "${CYAN}Operation cancelled.${RESET}"
+            break 2
+          fi
+          if [[ "$lower_input" == "and" || "$lower_input" == "or" ]]; then
+            DEFAULT_SEARCH_MODE="$lower_input"
+            save_config
+            echo -e "${GREEN}✅ Default search mode updated.${RESET}"
+            break
+          fi
+          echo -e "${RED}🚫 Invalid mode. Please enter 'and' or 'or'.${RESET}"
+          echo "" # Extra space
+        done
+        ;;
+      6) # Back to Main Menu
+        echo -e "${CYAN}Returning to main menu.${RESET}"
+        pause
+        return
+        ;;
+      *)
+        echo -e "${RED}❌ Invalid option. Please enter a number between ${BOLD}1${RESET}${RED} and ${BOLD}6${RESET}${RED}.${RESET}"
+        ;;
+    esac
+    pause
+    clear_screen
+  done
 }

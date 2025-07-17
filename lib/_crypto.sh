@@ -55,11 +55,11 @@ cleanup_on_exit() {
 
     local decrypted_content="$CREDENTIALS_DATA"
     
-    local temp_encrypted_content=$(mktemp)
+    local temp_encrypted_file=$(mktemp)
     local temp_openssl_stderr=$(mktemp) # Capture stderr for potential encryption errors
 
     # Run encryption in a subshell so we can monitor its PID with the spinner.
-    (encrypt_data "$decrypted_content" "$MASTER_PASSWORD" > "$temp_encrypted_content" 2>"$temp_openssl_stderr") &
+    (encrypt_data "$decrypted_content" "$MASTER_PASSWORD" > "$temp_encrypted_file" 2>"$temp_openssl_stderr") &
     local openssl_pid=$!
     spinner "$openssl_pid" "Encrypting data" # spinner from _utils.sh
     wait "$openssl_pid" # Wait for the background encryption process to finish
@@ -70,9 +70,9 @@ cleanup_on_exit() {
         cat "$temp_openssl_stderr" >&2 # Display openssl's error if encryption failed
       fi
       echo -e "${RED}❌ Error: Failed to encrypt data on exit. Your data might not be fully saved securely.${RESET}" >&2
-      rm -f "$temp_encrypted_content" # Clean up temp encrypted file on failure
+      rm -f "$temp_encrypted_file" # Clean up temp encrypted file on failure
     else
-      mv "$temp_encrypted_content" "$ENC_JSON_FILE"
+      mv "$temp_encrypted_file" "$ENC_JSON_FILE"
       if [[ $? -eq 0 ]]; then
         echo -e "${GREEN}✅ Credentials securely saved to ${BOLD}${ENC_JSON_FILE}${RESET}${GREEN}.${RESET}"
       else
