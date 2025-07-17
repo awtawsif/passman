@@ -9,7 +9,7 @@ set -u
 set -o pipefail
 
 # Dependencies:
-# - _colors.sh (for color variables like RED, GREEN, YELLOW, CYAN, BLUE, BOLD, RESET)
+# - _colors.sh (for color variables like NEON_RED, LIME_GREEN, ELECTRIC_YELLOW, AQUA, CYBER_BLUE, BRIGHT_BOLD, RESET)
 # - _utils.sh (for clear_screen, pause, trim, get_optional_input_with_remove, get_mandatory_input_conditional)
 # - _data_storage.sh (for load_entries, save_entries)
 # - _password_generator.sh (for generate_password)
@@ -19,33 +19,33 @@ set -o pipefail
 # Prompts the user for new credential details and adds them to the JSON file.
 add_entry() {
   clear_screen # From _utils.sh
-  echo -e "${BOLD}${MAGENTA}--- Add New Credential Entry ---${RESET}"
-  echo -e "${CYAN}💡 At any point, type '${BOLD}C${RESET}${CYAN}' to cancel this operation.${RESET}\n" # Hint for cancellation
+  echo -e "${BRIGHT_BOLD}${VIOLET}--- Add New Credential Entry ---${RESET}"
+  echo -e "${AQUA}💡 At any point, type '${BRIGHT_BOLD}C${RESET}${AQUA}' to cancel this operation.${RESET}\n" # Hint for cancellation
   echo "" # Extra space
 
   local website email username password logged_in_via linked_email recovery_email timestamp
 
   while true; do
-    read -rp "$(printf "${YELLOW}🌐 Enter Website Name: ${RESET}") " website_input
+    read -rp "$(printf "${ELECTRIC_YELLOW}🌐 Enter Website Name: ${RESET}") " website_input
     website=$(trim "$website_input") # From _utils.sh
     echo "" # Extra space
     if [[ "$(echo "$website" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
-      echo -e "${CYAN}Operation cancelled. Returning to main menu.${RESET}"
+      echo -e "${AQUA}Operation cancelled. Returning to main menu.${RESET}"
       pause # From _utils.sh
       return
     fi
     [[ -n "$website" ]] && break
-    echo -e "${RED}🚫 Website/Service name cannot be empty! Please provide a value or type '${CYAN}C' to cancel.${RESET}"
+    echo -e "${NEON_RED}🚫 Website/Service name cannot be empty! Please provide a value or type '${AQUA}C' to cancel.${RESET}"
     echo "" # Extra space
   done
 
   local logged_in_via_input
   while true; do
-    read -rp "$(printf "${YELLOW}🔗 Did you log into this site using another service (e.g., Google, Facebook)? (Leave blank if not): ${RESET}") " logged_in_via_input
+    read -rp "$(printf "${ELECTRIC_YELLOW}🔗 Did you log into this site using another service (e.g., Google, Facebook)? (Leave blank if not): ${RESET}") " logged_in_via_input
     logged_in_via=$(trim "$logged_in_via_input") # From _utils.sh
     echo "" # Extra space
     if [[ "$(echo "$logged_in_via" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
-      echo -e "${CYAN}Operation cancelled. Returning to main menu.${RESET}"
+      echo -e "${AQUA}Operation cancelled. Returning to main menu.${RESET}"
       pause # From _utils.sh
       return
     fi
@@ -56,48 +56,48 @@ add_entry() {
   if [[ -n "$logged_in_via" ]]; then
     # Prompt for linked email (mandatory)
     while true; do
-      read -rp "$(printf "${YELLOW}📧 Enter the email used for ${BOLD}%s${RESET} (cannot be empty, type 'C' to cancel): ${RESET}" "$logged_in_via")" linked_email_input
+      read -rp "$(printf "${ELECTRIC_YELLOW}📧 Enter the email used for ${BRIGHT_BOLD}%s${RESET} (cannot be empty, type 'C' to cancel): ${RESET}" "$logged_in_via")" linked_email_input
       linked_email=$(trim "$linked_email_input") # From _utils.sh
       echo "" # Extra space
       if [[ "$(echo "$linked_email" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
-        echo -e "${CYAN}Operation cancelled. Returning to main menu.${RESET}"
+        echo -e "${AQUA}Operation cancelled. Returning to main menu.${RESET}"
         pause # From _utils.sh
         return
       fi
       [[ -n "$linked_email" ]] && break
-      echo -e "${RED}🚫 Linked email cannot be empty if a service is specified! Please provide a value or type '${CYAN}C' to cancel.${RESET}"
+      echo -e "${NEON_RED}🚫 Linked email cannot be empty if a service is specified! Please provide a value or type '${AQUA}C' to cancel.${RESET}"
       echo "" # Extra space
     done
 
     # Prompt for username (optional)
-    read -rp "$(printf "${YELLOW}👤 Enter a username for this service (optional, leave blank if none):${RESET} ")" username_input
+    read -rp "$(printf "${ELECTRIC_YELLOW}👤 Enter a username for this service (optional, leave blank if none):${RESET} ")" username_input
     username=$(trim "$username_input")
     echo "" # Extra space
 
     email=""        # Ensure email is empty if logging in via another service
   else
     while true; do
-      read -rp "$(printf "${YELLOW}📧 Enter your Email for this site (cannot be empty, or type 'U' to use username):${RESET} ") " email_input
+      read -rp "$(printf "${ELECTRIC_YELLOW}📧 Enter your Email for this site (cannot be empty, or type 'U' to use username):${RESET} ") " email_input
       email=$(trim "$email_input") # From _utils.sh
       echo "" # Extra space
       if [[ "$(echo "$email" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
-        echo -e "${CYAN}Operation cancelled. Returning to main menu.${RESET}"
+        echo -e "${AQUA}Operation cancelled. Returning to main menu.${RESET}"
         pause # From _utils.sh
         return
       fi
       if [[ "$(echo "$email" | tr '[:upper:]' '[:lower:]')" == "u" ]]; then
         # User wants to use username instead of email (mandatory)
         while true; do
-          read -rp "$(printf "${YELLOW}👤 Enter your Username for this site (cannot be empty):${RESET} ") " username_input
+          read -rp "$(printf "${ELECTRIC_YELLOW}👤 Enter your Username for this site (cannot be empty):${RESET} ") " username_input
           username=$(trim "$username_input")
           echo "" # Extra space
           if [[ "$(echo "$username" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
-            echo -e "${CYAN}Operation cancelled. Returning to main menu.${RESET}"
+            echo -e "${AQUA}Operation cancelled. Returning to main menu.${RESET}"
             pause # From _utils.sh
             return
           fi
           [[ -n "$username" ]] && break
-          echo -e "${RED}🚫 Username cannot be empty! Please provide a value or type '${CYAN}C' to cancel.${RESET}"
+          echo -e "${NEON_RED}🚫 Username cannot be empty! Please provide a value or type '${AQUA}C' to cancel.${RESET}"
           echo "" # Extra space
         done
         email=""
@@ -105,12 +105,12 @@ add_entry() {
       fi
       if [[ -n "$email" ]]; then
         # Optionally prompt for username (can leave blank)
-        read -rp "$(printf "${YELLOW}👤 Enter a username for this site (optional, leave blank if none):${RESET} ")" username_input
+        read -rp "$(printf "${ELECTRIC_YELLOW}👤 Enter a username for this site (optional, leave blank if none):${RESET} ")" username_input
         username=$(trim "$username_input")
         echo "" # Extra space
         break
       fi
-      echo -e "${RED}🚫 Email cannot be empty! Please provide a value, type '${CYAN}C' to cancel, or '${CYAN}U' to use username.${RESET}"
+      echo -e "${NEON_RED}🚫 Email cannot be empty! Please provide a value, type '${AQUA}C' to cancel, or '${AQUA}U' to use username.${RESET}"
       echo "" # Extra space
     done
     linked_email="" # Ensure linked_email is empty if direct email is used
@@ -118,11 +118,11 @@ add_entry() {
 
   local recovery_email_input
   while true; do
-    read -rp "$(printf "${YELLOW}🚨 Recovery Email (optional, leave blank if none):${RESET} ") " recovery_email_input
+    read -rp "$(printf "${ELECTRIC_YELLOW}🚨 Recovery Email (optional, leave blank if none):${RESET} ") " recovery_email_input
     recovery_email=$(trim "$recovery_email_input") # From _utils.sh
     echo "" # Extra space
     if [[ "$(echo "$recovery_email" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
-      echo -e "${CYAN}Operation cancelled. Returning to main menu.${RESET}"
+      echo -e "${AQUA}Operation cancelled. Returning to main menu.${RESET}"
       pause # From _utils.sh
       return
     fi
@@ -131,37 +131,37 @@ add_entry() {
 
   local use_generator
   while true; do
-    read -rp "$(printf "${YELLOW}🔑 Generate a random password for this entry? (${BOLD}y/N${RESET}${YELLOW}):${RESET}") " use_generator_input
+    read -rp "$(printf "${ELECTRIC_YELLOW}🔑 Generate a random password for this entry? (${BRIGHT_BOLD}y/N${RESET}${ELECTRIC_YELLOW}):${RESET}") " use_generator_input
     use_generator=$(trim "${use_generator_input:-n}") # Default to 'n'
     echo "" # Extra space
     if [[ "$(echo "$use_generator" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
-      echo -e "${CYAN}Operation cancelled. Returning to main menu.${RESET}"
+      echo -e "${AQUA}Operation cancelled. Returning to main menu.${RESET}"
       pause # From _utils.sh
       return
     fi
     if [[ "$use_generator" =~ ^[yYnN]$ ]]; then
       break
     fi
-    echo -e "${RED}🚫 Invalid input. Please enter '${BOLD}Y${RESET}${RED}' for Yes, '${BOLD}N${RESET}${RED}' for No, or '${CYAN}C${RED}' to cancel.${RESET}"
+    echo -e "${NEON_RED}🚫 Invalid input. Please enter '${BRIGHT_BOLD}Y${RESET}${NEON_RED}' for Yes, '${BRIGHT_BOLD}N${RESET}${NEON_RED}' for No, or '${AQUA}C${NEON_RED}' to cancel.${RESET}"
     echo "" # Extra space
   done
 
   if [[ "$use_generator" =~ ^[yY]$ ]]; then
     # Directly use global defaults for password generation when adding a new entry
     password=$(generate_password "$DEFAULT_PASSWORD_LENGTH" "$DEFAULT_PASSWORD_UPPER" "$DEFAULT_PASSWORD_NUMBERS" "$DEFAULT_PASSWORD_SYMBOLS") # From _password_generator.sh
-    echo -e "${GREEN}🔐 Generated password using default settings: ${BOLD}$password${RESET}\n"
+    echo -e "${LIME_GREEN}🔐 Generated password using default settings: ${BRIGHT_BOLD}$password${RESET}\n"
   else
     # If not generating, prompt for manual password entry
     if [[ -n "$logged_in_via" ]]; then
       # If using service login, password for service is optional
       while true; do
-        printf "${YELLOW}🔑 Enter service password (optional, leave blank if none): ${RESET}"
+        printf "${ELECTRIC_YELLOW}🔑 Enter service password (optional, leave blank if none): ${RESET}"
         read -s password_input # Read password silently
         echo
         password=$(trim "$password_input") # From _utils.sh
         echo "" # Extra space
         if [[ "$(echo "$password" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
-          echo -e "${CYAN}Operation cancelled. Returning to main menu.${RESET}"
+          echo -e "${AQUA}Operation cancelled. Returning to main menu.${RESET}"
           pause # From _utils.sh
           return
         fi
@@ -170,18 +170,18 @@ add_entry() {
     else
       # If not using service login, password for website is mandatory
       while true; do
-        printf "${YELLOW}🔑 Enter website password (cannot be empty): ${RESET}"
+        printf "${ELECTRIC_YELLOW}🔑 Enter website password (cannot be empty): ${RESET}"
         read -s password_input # Read password silently
         echo
         password=$(trim "$password_input") # From _utils.sh
         echo "" # Extra space
         if [[ "$(echo "$password" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
-          echo -e "${CYAN}Operation cancelled. Returning to main menu.${RESET}"
+          echo -e "${AQUA}Operation cancelled. Returning to main menu.${RESET}"
           pause # From _utils.sh
           return
         fi
         [[ -n "$password" ]] && break
-        echo -e "${RED}🚫 Website password cannot be empty! Please provide a value or type '${CYAN}C' to cancel.${RESET}"
+        echo -e "${NEON_RED}🚫 Website password cannot be empty! Please provide a value or type '${AQUA}C' to cancel.${RESET}"
         echo "" # Extra space
       done
     fi
@@ -218,48 +218,48 @@ add_entry() {
   updated_entries_json=$(echo "$entries_json" | jq --argjson new_entry "$new_entry_json" '. + [$new_entry]')
 
   # --- Confirmation before saving ---
-  echo -e "\n${BOLD}${BLUE}--- Review New Entry ---${RESET}"
-  echo -e "  🌐 Website      : ${BOLD}$website${RESET}"
+  echo -e "\n${BRIGHT_BOLD}${CYBER_BLUE}--- Review New Entry ---${RESET}"
+  echo -e "  🌐 Website      : ${BRIGHT_BOLD}$website${RESET}"
   if [[ -n "$logged_in_via" ]]; then
-    echo -e "  🔗 Logged in via: ${BOLD}$logged_in_via${RESET}"
-    [[ -n "$linked_email" ]] && echo -e "  📧 Linked Email : ${BOLD}$linked_email${RESET}"
-    [[ -n "$username" ]] && echo -e "  👤 Username     : ${BOLD}$username${RESET}"
+    echo -e "  🔗 Logged in via: ${BRIGHT_BOLD}$logged_in_via${RESET}"
+    [[ -n "$linked_email" ]] && echo -e "  📧 Linked Email : ${BRIGHT_BOLD}$linked_email${RESET}"
+    [[ -n "$username" ]] && echo -e "  👤 Username     : ${BRIGHT_BOLD}$username${RESET}"
   elif [[ -n "$email" ]]; then
-    echo -e "  📧 Email        : ${BOLD}$email${RESET}"
+    echo -e "  📧 Email        : ${BRIGHT_BOLD}$email${RESET}"
   elif [[ -n "$username" ]]; then
-    echo -e "  👤 Username     : ${BOLD}$username${RESET}"
+    echo -e "  👤 Username     : ${BRIGHT_BOLD}$username${RESET}"
   fi
   if [[ -n "$recovery_email" ]]; then
-    echo -e "  🚨 Recovery Email: ${BOLD}$recovery_email${RESET}"
+    echo -e "  🚨 Recovery Email: ${BRIGHT_BOLD}$recovery_email${RESET}"
   fi
   if [[ -n "$password" ]]; then # Only display if password exists
-    echo -e "  🔑 Password     : ${BOLD}$password${RESET}" # Display for confirmation
+    echo -e "  🔑 Password     : ${BRIGHT_BOLD}$password${RESET}" # Display for confirmation
   fi
-  echo -e "  📅 Added        : ${BOLD}$timestamp${RESET}"
+  echo -e "  📅 Added        : ${BRIGHT_BOLD}$timestamp${RESET}"
   echo "" # Extra space
 
   local confirm_save
   while true; do
-    read -rp "$(printf "${YELLOW}Do you want to ${BOLD}SAVE${RESET}${YELLOW} this entry? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " confirm_save_input
+    read -rp "$(printf "${ELECTRIC_YELLOW}Do you want to ${BRIGHT_BOLD}SAVE${RESET}${ELECTRIC_YELLOW} this entry? (${BRIGHT_BOLD}Y/n${RESET}${ELECTRIC_YELLOW}):${RESET}") " confirm_save_input
     confirm_save=$(trim "${confirm_save_input:-y}") # From _utils.sh - Default to 'y'
     echo "" # Extra space
     if [[ "$(echo "$confirm_save" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
-      echo -e "${CYAN}Entry not saved. Returning to main menu.${RESET}"
+      echo -e "${AQUA}Entry not saved. Returning to main menu.${RESET}"
       pause # From _utils.sh
       return
     fi
     if [[ "$confirm_save" =~ ^[yYnN]$ ]]; then
       break
     fi
-    echo -e "${RED}🚫 Invalid input. Please enter '${BOLD}Y${RESET}${RED}' for Yes, '${BOLD}N${RESET}${RED}' for No, or '${CYAN}C${RED}' to cancel.${RESET}"
+    echo -e "${NEON_RED}🚫 Invalid input. Please enter '${BRIGHT_BOLD}Y${RESET}${NEON_RED}' for Yes, '${BRIGHT_BOLD}N${RESET}${NEON_RED}' for No, or '${AQUA}C${NEON_RED}' to cancel.${RESET}"
     echo "" # Extra space
   done
 
   if [[ "$confirm_save" =~ ^[yY]$ ]]; then
     save_entries "$updated_entries_json" # From _data_storage.sh
-    echo -e "${GREEN}✅ Entry successfully added and saved!${RESET}"
+    echo -e "${LIME_GREEN}✅ Entry successfully added and saved!${RESET}"
   else
-    echo -e "${CYAN}Entry not saved. Returning to main menu.${RESET}"
+    echo -e "${AQUA}Entry not saved. Returning to main menu.${RESET}"
   fi
   pause # From _utils.sh
 }
@@ -267,8 +267,8 @@ add_entry() {
 # Allows the user to select and edit an existing entry.
 edit_entry() {
   clear_screen # From _utils.sh
-  echo -e "${BOLD}${MAGENTA}--- Edit Existing Credential Entry ---${RESET}"
-  echo -e "${CYAN}💡 At any point, type '${BOLD}C${RESET}${CYAN}' to cancel this operation.${RESET}\n" # Hint for cancellation
+  echo -e "${BRIGHT_BOLD}${VIOLET}--- Edit Existing Credential Entry ---${RESET}"
+  echo -e "${AQUA}💡 At any point, type '${BRIGHT_BOLD}C${RESET}${AQUA}' to cancel this operation.${RESET}\n" # Hint for cancellation
   echo "" # Extra space
 
   local entries_json
@@ -282,17 +282,17 @@ edit_entry() {
   num_entries=$(echo "$entries_json" | jq 'length')
 
   if [[ "$num_entries" -eq 0 ]]; then
-    echo -e "${YELLOW}No entries to edit. Please add some first.${RESET}"
+    echo -e "${ELECTRIC_YELLOW}No entries to edit. Please add some first.${RESET}"
     pause # From _utils.sh
     return
   fi
 
   # Display entries with numbers for selection
-  echo -e "${CYAN}Choose an entry to edit by its number:${RESET}"
+  echo -e "${AQUA}Choose an entry to edit by its number:${RESET}"
   echo "" # Extra space
 
   # Define ANSI color codes for awk.
-  local bold_code=$BOLD # From _colors.sh
+  local bold_code=$BRIGHT_BOLD # From _colors.sh
   local reset_code=$RESET # From _colors.sh
 
   echo "$entries_json" | jq -r '
@@ -354,14 +354,14 @@ edit_entry() {
 
   local selected_index
   while true; do
-    read -rp "$(printf "${YELLOW}Enter the number of the entry to edit [1-%d]:${RESET} " "$num_entries")" selected_index_input
+    read -rp "$(printf "${ELECTRIC_YELLOW}Enter the number of the entry to edit [1-%d]:${RESET} " "$num_entries")" selected_index_input
     selected_index=$(trim "$selected_index_input") # From _utils.sh
     echo "" # Extra space
 
     local lower_input
     lower_input=$(echo "$selected_index" | tr '[:upper:]' '[:lower:]')
     if [[ "$lower_input" == "c" ]]; then
-      echo -e "${CYAN}Operation cancelled. Returning to main menu.${RESET}"
+      echo -e "${AQUA}Operation cancelled. Returning to main menu.${RESET}"
       pause # From _utils.sh
       return
     fi
@@ -369,7 +369,7 @@ edit_entry() {
     if [[ "$selected_index" =~ ^[0-9]+$ ]] && (( selected_index >= 1 && selected_index <= num_entries )); then
       break
     fi
-    echo -e "${RED}🚫 Invalid input. Please enter a number between 1 and ${num_entries}, or type '${CYAN}C${RED}' to cancel.${RESET}"
+    echo -e "${NEON_RED}🚫 Invalid input. Please enter a number between 1 and ${num_entries}, or type '${AQUA}C${NEON_RED}' to cancel.${RESET}"
     echo "" # Extra space
   done
 
@@ -395,37 +395,37 @@ edit_entry() {
   current_added=$(echo "$current_entry_json" | jq -r '.added')
 
   # --- Display preview of the selected entry ---
-  echo -e "${BOLD}${BLUE}--- Currently Selected Entry (#${selected_index}) ---${RESET}"
-  echo -e "  🌐 Website      : ${BOLD}$current_website${RESET}"
+  echo -e "${BRIGHT_BOLD}${CYBER_BLUE}--- Currently Selected Entry (#${selected_index}) ---${RESET}"
+  echo -e "  🌐 Website      : ${BRIGHT_BOLD}$current_website${RESET}"
   if [[ -n "$current_logged_in_via" ]]; then
-    echo -e "  🔗 Logged in via: ${BOLD}$current_logged_in_via${RESET}"
-    [[ -n "$current_linked_email" ]] && echo -e "  📧 Linked Email : ${BOLD}$current_linked_email${RESET}"
-    [[ -n "$current_username" ]] && echo -e "  👤 Username     : ${BOLD}$current_username${RESET}"
+    echo -e "  🔗 Logged in via: ${BRIGHT_BOLD}$current_logged_in_via${RESET}"
+    [[ -n "$current_linked_email" ]] && echo -e "  📧 Linked Email : ${BRIGHT_BOLD}$current_linked_email${RESET}"
+    [[ -n "$current_username" ]] && echo -e "  👤 Username     : ${BRIGHT_BOLD}$current_username${RESET}"
   elif [[ -n "$current_email" ]]; then
-    echo -e "  📧 Email        : ${BOLD}$current_email${RESET}"
+    echo -e "  📧 Email        : ${BRIGHT_BOLD}$current_email${RESET}"
   elif [[ -n "$current_username" ]]; then
-    echo -e "  👤 Username     : ${BOLD}$current_username${RESET}"
+    echo -e "  👤 Username     : ${BRIGHT_BOLD}$current_username${RESET}"
   fi
   if [[ -n "$current_recovery_email" ]]; then
-    echo -e "  🚨 Recovery Email: ${BOLD}$current_recovery_email${RESET}"
+    echo -e "  🚨 Recovery Email: ${BRIGHT_BOLD}$current_recovery_email${RESET}"
   fi
   if [[ -n "$current_password" ]]; then
-      echo -e "  🔑 Password     : ${BOLD}$current_password${RESET}" # Display current password if it exists
+      echo -e "  🔑 Password     : ${BRIGHT_BOLD}$current_password${RESET}" # Display current password if it exists
   fi
-  echo -e "  📅 Added        : ${BOLD}$current_added${RESET}"
+  echo -e "  📅 Added        : ${BRIGHT_BOLD}$current_added${RESET}"
   echo "" # Extra space
-  echo -e "${CYAN}You are now editing this entry. Use the options provided for each field.${RESET}"
+  echo -e "${AQUA}You are now editing this entry. Use the options provided for each field.${RESET}"
   echo "" # Extra space
 
   local new_website="$current_website"
   while true; do
-    read -rp "$(printf "${YELLOW}🌐 Update Website/Service Name (current: ${BOLD}%s${RESET}, cannot be empty):${RESET} " "$current_website")" new_website_input
+    read -rp "$(printf "${ELECTRIC_YELLOW}🌐 Update Website/Service Name (current: ${BRIGHT_BOLD}%s${RESET}):${RESET} " "$current_website")" new_website_input
     new_website_input=$(trim "${new_website_input}") # From _utils.sh
     echo "" # Extra space
     local lower_input
     lower_input=$(echo "$new_website_input" | tr '[:upper:]' '[:lower:]')
     if [[ "$lower_input" == "c" ]]; then
-      echo -e "${CYAN}Operation cancelled. Returning to main menu.${RESET}"
+      echo -e "${AQUA}Operation cancelled. Returning to main menu.${RESET}"
       pause # From _utils.sh
       return
     fi
@@ -434,11 +434,11 @@ edit_entry() {
       break
     elif [[ -n "$current_website" ]]; then
       # If current website exists and new input is empty, keep current
-      echo -e "${CYAN}Keeping current website: ${BOLD}$current_website${RESET}${RESET}"
+      echo -e "${AQUA}Keeping current website: ${BRIGHT_BOLD}$current_website${RESET}${RESET}\n"
       new_website="$current_website"
       break
     else
-      echo -e "${RED}🚫 Website/Service name cannot be empty! Please provide a value or type '${CYAN}C${RED}' to cancel.${RESET}"
+      echo -e "${NEON_RED}🚫 Website/Service name cannot be empty! Please provide a value or type '${AQUA}C${NEON_RED}' to cancel.${RESET}"
       echo "" # Extra space
     fi
   done
@@ -461,7 +461,7 @@ edit_entry() {
         get_optional_input_with_remove "👤 Update Username for ${new_logged_in_via_temp}" "$current_username" new_username
         if [[ $? -ne 0 ]]; then clear_screen; return; fi
         if [[ -z "$new_username" ]]; then
-          echo -e "${YELLOW}Both Linked email and Username were removed or left blank, therefore 'Logged in via' will also be removed for consistency.${RESET}"
+          echo -e "${ELECTRIC_YELLOW}Both Linked email and Username were removed or left blank, therefore 'Logged in via' will also be removed for consistency.${RESET}"
           actual_logged_in_via=""
         fi
         break
@@ -481,7 +481,7 @@ edit_entry() {
         get_optional_input_with_remove "👤 Update Username" "$current_username" new_username
         if [[ $? -ne 0 ]]; then clear_screen; return; fi
         if [[ -z "$new_username" ]]; then
-          echo -e "${RED}🚫 Either Email or Username is required! Please provide at least one.${RESET}"
+          echo -e "${NEON_RED}🚫 Either Email or Username is required! Please provide at least one.${RESET}"
           continue
         fi
       else
@@ -499,13 +499,13 @@ edit_entry() {
   local new_password=""
   local use_generator_choice # Renamed to avoid clash with potential 'use_generator' from password generation block
   while true; do
-    read -rp "$(printf "${YELLOW}🔑 Generate a new random password for this entry? (${BOLD}y/N${RESET}${YELLOW}):${RESET}") " use_generator_choice_input
+    read -rp "$(printf "${ELECTRIC_YELLOW}🔑 Generate a new random password for this entry? (${BRIGHT_BOLD}y/N${RESET}${ELECTRIC_YELLOW}):${RESET}") " use_generator_choice_input
     use_generator_choice_input=$(trim "${use_generator_choice_input:-n}") # From _utils.sh - Default to 'n'
     echo "" # Extra space
     local lower_input
     lower_input=$(echo "$use_generator_choice_input" | tr '[:upper:]' '[:lower:]')
     if [[ "$lower_input" == "c" ]]; then
-      echo -e "${CYAN}Password generation cancelled. Returning to main menu.${RESET}"
+      echo -e "${AQUA}Password generation cancelled. Returning to main menu.${RESET}"
       pause # From _utils.sh
       return
     fi
@@ -513,20 +513,20 @@ edit_entry() {
       use_generator_choice="$use_generator_choice_input"
       break
     fi
-    echo -e "${RED}🚫 Invalid input. Please enter '${BOLD}Y${RESET}${RED}' for Yes, '${BOLD}N${RESET}${RED}' for No, or '${CYAN}C${RED}' to cancel.${RESET}"
+    echo -e "${NEON_RED}🚫 Invalid input. Please enter '${BRIGHT_BOLD}Y${RESET}${NEON_RED}' for Yes, '${BRIGHT_BOLD}N${RESET}${NEON_RED}' for No, or '${AQUA}C${NEON_RED}' to cancel.${RESET}"
     echo "" # Extra space
   done
 
   if [[ "$use_generator_choice" =~ ^[yY]$ ]]; then
     local length
     while true; do
-      read -rp "$(printf "${YELLOW}🔢 New password length (default: ${BOLD}%s${RESET}${YELLOW}):${RESET}" "$DEFAULT_PASSWORD_LENGTH")" length_input
+      read -rp "$(printf "${ELECTRIC_YELLOW}🔢 New password length (default: ${BRIGHT_BOLD}%s${RESET}${ELECTRIC_YELLOW}):${RESET}" "$DEFAULT_PASSWORD_LENGTH")" length_input
       length_input=$(trim "$length_input") # From _utils.sh
       echo "" # Extra space
       local lower_input
       lower_input=$(echo "$length_input" | tr '[:upper:]' '[:lower:]')
       if [[ "$lower_input" == "c" ]]; then
-        echo -e "${CYAN}Password generation cancelled. Returning to main menu.${RESET}"
+        echo -e "${AQUA}Password generation cancelled. Returning to main menu.${RESET}"
         pause # From _utils.sh
         return
       fi
@@ -534,67 +534,67 @@ edit_entry() {
       if [[ "$length" =~ ^[0-9]+$ && "$length" -ge 1 ]]; then
         break
       fi
-      echo -e "${RED}🚫 Invalid length. Please enter a positive number or type '${CYAN}C${RED}' to cancel.${RESET}"
+      echo -e "${NEON_RED}🚫 Invalid length. Please enter a positive number or type '${AQUA}C${NEON_RED}' to cancel.${RESET}"
       echo "" # Extra space
     done
 
     local upper numbers symbols
     while true; do
-      read -rp "$(printf "${YELLOW}⬆️ Include uppercase letters? (default: ${BOLD}%s${RESET}${YELLOW}, Y/n):${RESET}" "$DEFAULT_PASSWORD_UPPER")" upper_input
+      read -rp "$(printf "${ELECTRIC_YELLOW}⬆️ Include uppercase letters? (default: ${BRIGHT_BOLD}%s${RESET}${ELECTRIC_YELLOW}):${RESET}" "$DEFAULT_PASSWORD_UPPER")" upper_input
       upper=$(trim "${upper_input:-$DEFAULT_PASSWORD_UPPER}") # Use global default
       echo "" # Extra space
       local lower_input
       lower_input=$(echo "$upper_input" | tr '[:upper:]' '[:lower:]')
       if [[ "$lower_input" == "c" ]]; then
-        echo -e "${CYAN}Password generation cancelled. Returning to main menu.${RESET}"
+        echo -e "${AQUA}Password generation cancelled. Returning to main menu.${RESET}"
         pause # From _utils.sh
         return
       fi
       if [[ "$upper" =~ ^[yYnN]$ ]]; then
         break
       fi
-      echo -e "${RED}🚫 Invalid input. Please enter '${BOLD}Y${RESET}${RED}' for Yes, '${BOLD}N${RESET}${RED}' for No, or '${CYAN}C${RED}' to cancel.${RESET}"
+      echo -e "${NEON_RED}🚫 Invalid input. Please enter '${BRIGHT_BOLD}Y${RESET}${NEON_RED}' for Yes, '${BRIGHT_BOLD}N${RESET}${NEON_RED}' for No, or '${AQUA}C${NEON_RED}' to cancel.${RESET}"
       echo "" # Extra space
     done
 
     while true; do
-      read -rp "$(printf "${YELLOW}🔢 Include numbers? (default: ${BOLD}%s${RESET}${YELLOW}, Y/n):${RESET}" "$DEFAULT_PASSWORD_NUMBERS")" numbers_input
+      read -rp "$(printf "${ELECTRIC_YELLOW}🔢 Include numbers? (default: ${BRIGHT_BOLD}%s${RESET}${ELECTRIC_YELLOW}):${RESET}" "$DEFAULT_PASSWORD_NUMBERS")" numbers_input
       numbers=$(trim "${numbers_input:-$DEFAULT_PASSWORD_NUMBERS}") # Use global default
       echo "" # Extra space
       local lower_input
       lower_input=$(echo "$numbers_input" | tr '[:upper:]' '[:lower:]')
       if [[ "$lower_input" == "c" ]]; then
-        echo -e "${CYAN}Password generation cancelled. Returning to main menu.${RESET}"
+        echo -e "${AQUA}Password generation cancelled. Returning to main menu.${RESET}"
         pause # From _utils.sh
         return
       fi
       if [[ "$numbers" =~ ^[yYnN]$ ]]; then
         break
       fi
-      echo -e "${RED}🚫 Invalid input. Please enter '${BOLD}Y${RESET}${RED}' for Yes, '${BOLD}N${RED}' for No, or '${CYAN}C${RED}' to cancel.${RESET}"
+      echo -e "${NEON_RED}🚫 Invalid input. Please enter '${BRIGHT_BOLD}Y${RESET}${NEON_RED}' for Yes, '${BRIGHT_BOLD}N${NEON_RED}' for No, or '${AQUA}C${NEON_RED}' to cancel.${RESET}"
       echo "" # Extra space
     done
 
     while true; do
-      read -rp "$(printf "${YELLOW}🔣 Include symbols? (default: ${BOLD}%s${RESET}${YELLOW}, Y/n):${RESET}" "$DEFAULT_PASSWORD_SYMBOLS")" symbols_input
+      read -rp "$(printf "${ELECTRIC_YELLOW}🔣 Include symbols? (default: ${BRIGHT_BOLD}%s${RESET}${ELECTRIC_YELLOW}):${RESET}" "$DEFAULT_PASSWORD_SYMBOLS")" symbols_input
       symbols=$(trim "${symbols_input:-$DEFAULT_PASSWORD_SYMBOLS}") # Use global default
       echo "" # Extra space
       local lower_input
       lower_input=$(echo "$symbols_input" | tr '[:upper:]' '[:lower:]')
       if [[ "$lower_input" == "c" ]]; then
-        echo -e "${CYAN}Password generation cancelled. Returning to main menu.${RESET}"
+        echo -e "${AQUA}Password generation cancelled. Returning to main menu.${RESET}"
         pause # From _utils.sh
         return
       fi
       if [[ "$symbols" =~ ^[yYnN]$ ]]; then
         break
       fi
-      echo -e "${RED}🚫 Invalid input. Please enter '${BOLD}Y${RESET}${RED}' for Yes, '${BOLD}N${RESET}${RED}' for No, or '${CYAN}C${RED}' to cancel.${RESET}"
+      echo -e "${NEON_RED}🚫 Invalid input. Please enter '${BRIGHT_BOLD}Y${RESET}${NEON_RED}' for Yes, '${BRIGHT_BOLD}N${RESET}${NEON_RED}' for No, or '${AQUA}C${NEON_RED}' to cancel.${RESET}"
       echo "" # Extra space
     done
 
     new_password=$(generate_password "$length" "$upper" "$numbers" "$symbols") # From _password_generator.sh
-    echo -e "${GREEN}🔐 Generated new password: ${BOLD}$new_password${RESET}\n"
+    echo -e "${LIME_GREEN}🔐 Generated new password: ${BRIGHT_BOLD}$new_password${RESET}\n"
   else
       # If not generating, prompt for manual password entry
       # Always use get_optional_input_with_remove for password in edit mode
@@ -633,49 +633,49 @@ edit_entry() {
        '.[$idx | tonumber] = $updated_entry')
 
   local confirm_update
-  echo -e "\n${BOLD}${BLUE}--- Review Updated Entry ---${RESET}"
-  echo -e "  🌐 Website      : ${BOLD}$new_website${RESET}"
+  echo -e "\n${BRIGHT_BOLD}${CYBER_BLUE}--- Review Updated Entry ---${RESET}"
+  echo -e "  🌐 Website      : ${BRIGHT_BOLD}$new_website${RESET}"
   if [[ -n "$actual_logged_in_via" ]]; then
-    echo -e "  🔗 Logged in via: ${BOLD}$actual_logged_in_via${RESET}"
-    [[ -n "$new_linked_email" ]] && echo -e "  📧 Linked Email : ${BOLD}$new_linked_email${RESET}"
-    [[ -n "$new_username" ]] && echo -e "  👤 Username     : ${BOLD}$new_username${RESET}"
+    echo -e "  🔗 Logged in via: ${BRIGHT_BOLD}$actual_logged_in_via${RESET}"
+    [[ -n "$new_linked_email" ]] && echo -e "  📧 Linked Email : ${BRIGHT_BOLD}$new_linked_email${RESET}"
+    [[ -n "$new_username" ]] && echo -e "  👤 Username     : ${BRIGHT_BOLD}$new_username${RESET}"
   elif [[ -n "$new_email" ]]; then
-    echo -e "  📧 Email        : ${BOLD}$new_email${RESET}"
+    echo -e "  📧 Email        : ${BRIGHT_BOLD}$new_email${RESET}"
   elif [[ -n "$new_username" ]]; then
-    echo -e "  👤 Username     : ${BOLD}$new_username${RESET}"
+    echo -e "  👤 Username     : ${BRIGHT_BOLD}$new_username${RESET}"
   fi
   if [[ -n "$new_recovery_email" ]]; then
-    echo -e "  🚨 Recovery Email: ${BOLD}$new_recovery_email${RESET}"
+    echo -e "  🚨 Recovery Email: ${BRIGHT_BOLD}$new_recovery_email${RESET}"
   fi
   if [[ -n "$new_password" ]]; then
-      echo -e "  🔑 Password     : ${BOLD}$new_password${RESET}"
+      echo -e "  🔑 Password     : ${BRIGHT_BOLD}$new_password${RESET}"
   fi
-  echo -e "  📅 Updated      : ${BOLD}$timestamp${RESET}"
+  echo -e "  📅 Updated      : ${BRIGHT_BOLD}$timestamp${RESET}"
   echo "" # Extra space
 
   while true; do
-    read -rp "$(printf "${YELLOW}Do you want to ${BOLD}SAVE${RESET}${YELLOW} these changes? (${BOLD}Y/n${RESET}${YELLOW}):${RESET}") " confirm_update_input
+    read -rp "$(printf "${ELECTRIC_YELLOW}Do you want to ${BRIGHT_BOLD}SAVE${RESET}${ELECTRIC_YELLOW} these changes? (${BRIGHT_BOLD}Y/n${RESET}${ELECTRIC_YELLOW}):${RESET}") " confirm_update_input
     confirm_update=$(trim "${confirm_update_input:-y}") # From _utils.sh - Default to 'y'
     echo "" # Extra space
     local lower_input
     lower_input=$(echo "$confirm_update" | tr '[:upper:]' '[:lower:]')
     if [[ "$lower_input" == "c" ]]; then
-      echo -e "${CYAN}Changes not saved. Returning to main menu.${RESET}"
+      echo -e "${AQUA}Changes not saved. Returning to main menu.${RESET}"
       pause # From _utils.sh
       return
     fi
     if [[ "$confirm_update" =~ ^[yYnN]$ ]]; then
       break
     fi
-    echo -e "${RED}🚫 Invalid input. Please enter '${BOLD}Y${RESET}${RED}' for Yes, '${BOLD}N${RED}' for No, or '${CYAN}C${RED}' to cancel.${RESET}"
+    echo -e "${NEON_RED}🚫 Invalid input. Please enter '${BRIGHT_BOLD}Y${RESET}${NEON_RED}' for Yes, '${BRIGHT_BOLD}N${NEON_RED}' for No, or '${AQUA}C${NEON_RED}' to cancel.${RESET}"
     echo "" # Extra space
   done
 
   if [[ "$confirm_update" =~ ^[yY]$ ]]; then
     save_entries "$updated_entries_json" # From _data_storage.sh
-    echo -e "${GREEN}✅ Entry successfully updated and saved!${RESET}"
+    echo -e "${LIME_GREEN}✅ Entry successfully updated and saved!${RESET}"
   else
-    echo -e "${CYAN}Changes not saved. Returning to main menu.${RESET}"
+    echo -e "${AQUA}Changes not saved. Returning to main menu.${RESET}"
   fi
   pause # From _utils.sh
 }
@@ -683,8 +683,8 @@ edit_entry() {
 # Allows the user to select and remove one or multiple existing entries.
 remove_entry() {
   clear_screen # From _utils.sh
-  echo -e "${BOLD}${MAGENTA}--- Remove Credential Entries ---${RESET}"
-  echo -e "${CYAN}💡 At any point, type '${BOLD}C${RESET}${CYAN}' to cancel this operation.${RESET}\n" # Hint for cancellation
+  echo -e "${BRIGHT_BOLD}${VIOLET}--- Remove Credential Entries ---${RESET}"
+  echo -e "${AQUA}💡 At any point, type '${BRIGHT_BOLD}C${RESET}${AQUA}' to cancel this operation.${RESET}\n" # Hint for cancellation
   echo "" # Extra space
 
   local entries_json
@@ -698,17 +698,17 @@ remove_entry() {
   num_entries=$(echo "$entries_json" | jq 'length')
 
   if [[ "$num_entries" -eq 0 ]]; then
-    echo -e "${YELLOW}No entries to remove. Please add some first.${RESET}"
+    echo -e "${ELECTRIC_YELLOW}No entries to remove. Please add some first.${RESET}"
     pause # From _utils.sh
     return
   fi
 
   # Display entries with numbers for selection
-  echo -e "${CYAN}Choose an entry to edit by its number:${RESET}"
+  echo -e "${AQUA}Choose an entry to edit by its number:${RESET}"
   echo "" # Extra space
 
   # Define ANSI color codes for awk.
-  local bold_code=$BOLD # From _colors.sh
+  local bold_code=$BRIGHT_BOLD # From _colors.sh
   local reset_code=$RESET # From _colors.sh
 
   echo "$entries_json" | jq -r '
@@ -773,14 +773,14 @@ remove_entry() {
   local valid_indices=()
 
   while true; do
-    read -rp "$(printf "${YELLOW}Enter numbers of entries to remove (e.g., '${BOLD}1,3,5${RESET}${YELLOW}'):${RESET} ") " selected_indices_str_input
+    read -rp "$(printf "${ELECTRIC_YELLOW}Enter numbers of entries to remove (e.g., '${BRIGHT_BOLD}1,3,5${RESET}${ELECTRIC_YELLOW}'):${RESET} ") " selected_indices_str_input
     selected_indices_str=$(trim "$selected_indices_str_input") # From _utils.sh
     echo "" # Extra space
 
     local lower_input
     lower_input=$(echo "$selected_indices_str" | tr '[:upper:]' '[:lower:]')
     if [[ "$lower_input" == "c" ]]; then
-      echo -e "${CYAN}Operation cancelled. Returning to main menu.${RESET}"
+      echo -e "${AQUA}Operation cancelled. Returning to main menu.${RESET}"
       pause # From _utils.sh
       return
     fi
@@ -795,7 +795,7 @@ remove_entry() {
       if [[ "$idx" =~ ^[0-9]+$ ]] && (( idx >= 1 && idx <= num_entries )); then
         valid_indices+=("$idx")
       else
-        echo -e "${RED}🚫 Invalid entry number: '${idx_str}'. Please enter valid numbers or type '${CYAN}C${RED}' to cancel.${RESET}"
+        echo -e "${NEON_RED}🚫 Invalid entry number: '${idx_str}'. Please enter valid numbers or type '${AQUA}C${NEON_RED}' to cancel.${RESET}"
         all_valid=false
         break
       fi
@@ -808,23 +808,23 @@ remove_entry() {
       valid_indices=("${sorted_indices[@]}")
       break
     elif [[ "$all_valid" == "true" ]] && [[ "${#valid_indices[@]}" -eq 0 ]]; then
-      echo -e "${RED}🚫 No valid entries selected. Please enter at least one number, or type '${CYAN}C${RED}' to cancel.${RESET}"
+      echo -e "${NEON_RED}🚫 No valid entries selected. Please enter at least one number, or type '${AQUA}C${NEON_RED}' to cancel.${RESET}"
     fi
     echo "" # Extra space
   done
 
   # --- Display preview of selected entries for removal ---
-  echo -e "\n${BOLD}${BLUE}--- Entries to be Permanently Removed ---${RESET}"
+  echo -e "\n${BRIGHT_BOLD}${CYBER_BLUE}--- Entries to be Permanently Removed ---${RESET}"
 
   # Use the same preview format as view_entries_formatted for the selected entries
   local entries_to_remove_json
   entries_to_remove_json=$(echo "$entries_json" | jq "[ $(IFS=,; for idx in "${valid_indices[@]}"; do echo ".[$((idx-1))]"; done | paste -sd, -) ]")
 
   # Define ANSI color codes for awk.
-  local bold_code=$BOLD
+  local bold_code=$BRIGHT_BOLD
   local reset_code=$RESET
-  local cyan_code=$CYAN
-  local blue_code=$BLUE
+  local cyan_code=$AQUA
+  local blue_code=$CYBER_BLUE
 
   echo "$entries_to_remove_json" | jq -r '
     .[] |
@@ -863,34 +863,34 @@ remove_entry() {
 
   local confirm_removal
   while true; do
-    read -rp "$(printf "${YELLOW}Are you ${BOLD}SURE${RESET}${YELLOW} you want to PERMANENTLY remove these entries? (${RED}y/N${RESET}${YELLOW}):${RESET}") " confirm_removal_input
+    read -rp "$(printf "${ELECTRIC_YELLOW}Are you ${BRIGHT_BOLD}SURE${RESET}${ELECTRIC_YELLOW} you want to PERMANENTLY remove these entries? (${NEON_RED}y/N${RESET}${ELECTRIC_YELLOW}):${RESET}") " confirm_removal_input
     confirm_removal=$(trim "${confirm_removal_input:-n}") # From _utils.sh - Default to 'n'
     echo "" # Extra space
     local lower_input
     lower_input=$(echo "$confirm_removal" | tr '[:upper:]' '[:lower:]')
     if [[ "$lower_input" == "c" ]]; then
-      echo -e "${CYAN}Removal cancelled. Returning to main menu.${RESET}"
+      echo -e "${AQUA}Removal cancelled. Returning to main menu.${RESET}"
       pause # From _utils.sh
       return
     fi
     if [[ "$confirm_removal" =~ ^[yYnN]$ ]]; then
       break
     fi
-    echo -e "${RED}🚫 Invalid input. Please enter '${BOLD}Y${RESET}${RED}' for Yes, '${BOLD}N${RED}' for No, or '${CYAN}C${RED}' to cancel.${RESET}"
+    echo -e "${NEON_RED}🚫 Invalid input. Please enter '${BRIGHT_BOLD}Y${RESET}${NEON_RED}' for Yes, '${BRIGHT_BOLD}N${NEON_RED}' for No, or '${AQUA}C${NEON_RED}' to cancel.${RESET}"
     echo "" # Extra space
   done
 
   if [[ "$confirm_removal" =~ ^[yY]$ ]]; then
     local updated_entries_json="$entries_json"
     for idx in "${valid_indices[@]}"; do
-      echo -e "${CYAN}Removing entry ${idx}...${RESET}"
+      echo -e "${AQUA}Removing entry ${idx}...${RESET}"
       # Remove the entry using jq. Note: indices are 0-based in jq.
       updated_entries_json=$(echo "$updated_entries_json" | jq "del(.[$((idx - 1))])")
     done
     save_entries "$updated_entries_json" # From _data_storage.sh
-    echo -e "${GREEN}✅ Selected entries removed successfully!${RESET}"
+    echo -e "${LIME_GREEN}✅ Selected entries removed successfully!${RESET}"
   else
-    echo -e "${CYAN}Removal cancelled.${RESET}"
+    echo -e "${AQUA}Removal cancelled.${RESET}"
   fi
   pause # From _utils.sh
 }

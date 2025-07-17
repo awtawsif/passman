@@ -14,14 +14,14 @@ set -o pipefail
 # Clears the screen and displays a welcome banner.
 clear_screen() {
   clear
-  echo -e "${BOLD}${MAGENTA}=====================================================${RESET}"
-  echo -e "${BOLD}${CYAN}          ✨ Secure Password Manager ✨          ${RESET}"
-  echo -e "${BOLD}${MAGENTA}=====================================================${RESET}\n"
+  echo -e "${BRIGHT_BOLD}${VIOLET}=====================================================${RESET}"
+  echo -e "${BRIGHT_BOLD}${AQUA}          ✨ Secure Password Manager ✨          ${RESET}"
+  echo -e "${BRIGHT_BOLD}${VIOLET}=====================================================${RESET}\n"
 }
 
 # Pauses script execution until the user presses Enter, then clears the screen.
 pause() {
-  echo -e "\n${YELLOW}Press ${BOLD}Enter${RESET}${YELLOW} to continue...${RESET}"
+  echo -e "\n${ELECTRIC_YELLOW}Press ${BRIGHT_BOLD}Enter${RESET}${ELECTRIC_YELLOW} to continue...${RESET}"
   read -r
   clear_screen
 }
@@ -51,12 +51,12 @@ spinner() {
   local spinstr='|/-\\' # Spinning characters
   while kill -0 "$pid" 2>/dev/null; do # Check if process is still alive
     for (( i=0; i<${#spinstr}; i++ )); do
-      printf "\r${CYAN}${spinstr:i:1} %s...${RESET}" "$message"
+      printf "\r${AQUA}${spinstr:i:1} %s...${RESET}" "$message"
       sleep $delay
     done
   done
   # Clear the spinner line and print "Done" message
-  printf "\r${GREEN}✓ %s Complete!         ${RESET}\n" "$message" # More descriptive "Done"
+  printf "\r${LIME_GREEN}✓ %s Complete!         ${RESET}\n" "$message" # More descriptive "Done"
 }
 
 # Prompts the user for a master password, optionally confirming it.
@@ -70,21 +70,21 @@ get_master_password() {
   local confirm_password="$3"
 
   while true; do
-    printf "${YELLOW}%s${RESET}" "$prompt_msg"
+    printf "${ELECTRIC_YELLOW}%s${RESET}" "$prompt_msg"
     read -s -r master_pass # Read password silently
     echo
 
     if [[ -z "$master_pass" ]]; then
-      echo -e "${RED}🚫 Master password cannot be empty! Please try again.${RESET}"
+      echo -e "${NEON_RED}🚫 Master password cannot be empty! Please try again.${RESET}"
       continue
     fi
 
     if [[ "$confirm_password" == "true" ]]; then
-      printf "${YELLOW}Confirm your master password: ${RESET}"
+      printf "${ELECTRIC_YELLOW}Confirm your master password: ${RESET}"
       read -s -r master_pass_confirm
       echo
       if [[ "$master_pass" != "$master_pass_confirm" ]]; then
-        echo -e "${RED}🚫 Passwords do not match. Please try again.${RESET}"
+        echo -e "${NEON_RED}🚫 Passwords do not match. Please try again.${RESET}"
         continue
       fi
     fi
@@ -104,7 +104,7 @@ get_optional_input_with_remove() {
   local input_val
 
   while true; do
-    read -p "$(printf "${YELLOW}%s (current: ${BOLD}%s${RESET}) [${GREEN}Leave BLANK: Keep${RESET} | ${RED}Type 'X': Remove${RESET}]:${RESET} " "$prompt_msg" "${current_val:-None}")" input_val
+    read -p "$(printf "${ELECTRIC_YELLOW}%s (current: ${BRIGHT_BOLD}%s${RESET}) [${LIME_GREEN}Leave BLANK: Keep${RESET} | ${NEON_RED}Type 'X': Remove${RESET}]:${RESET} " "$prompt_msg" "${current_val:-None}")" input_val
     input_val=$(trim "$input_val")
     echo "" # Extra space
 
@@ -120,7 +120,7 @@ get_optional_input_with_remove() {
     elif [[ "$lower_input" == "x" ]]; then
       # User typed X, set to empty to remove from JSON
       printf -v "$var_name" "%s" ""
-      echo -e "${CYAN}Field will be removed.${RESET}"
+      echo -e "${AQUA}Field will be removed.${RESET}"
       break
     else
       # User provided a new value
@@ -143,7 +143,7 @@ get_mandatory_input_conditional() {
 
   while true; do
     if [[ "$is_mandatory" == "true" ]]; then
-        read -p "$(printf "${YELLOW}%s (current: ${BOLD}%s${RESET}, cannot be empty):${RESET} " "$prompt_msg" "${current_val:-None}")" input_val
+        read -p "$(printf "${ELECTRIC_YELLOW}%s (current: ${BRIGHT_BOLD}%s${RESET}, cannot be empty):${RESET} " "$prompt_msg" "${current_val:-None}")" input_val
         input_val=$(trim "$input_val")
         echo "" # Extra space
         local lower_input
@@ -155,7 +155,7 @@ get_mandatory_input_conditional() {
             printf -v "$var_name" "%s" "$input_val"
             break
         else
-            echo -e "${RED}🚫 This field cannot be empty! Please provide a value or type '${CYAN}C${RED}' to cancel.${RESET}"
+            echo -e "${NEON_RED}🚫 This field cannot be empty! Please provide a value or type '${AQUA}C${NEON_RED}' to cancel.${RESET}"
             echo "" # Extra space
         fi
     else # This branch should technically not be reached if get_optional_input_with_remove is used for optional fields
@@ -181,7 +181,7 @@ copy_to_clipboard() {
     printf "%s" "$text" | pbcopy
     return 0
   else
-    echo -e "${YELLOW}⚠️  No clipboard utility found. Please install xclip or pbcopy.${RESET}"
+    echo -e "${ELECTRIC_YELLOW}⚠️  No clipboard utility found. Please install xclip or pbcopy.${RESET}"
     return 1
   fi
 }

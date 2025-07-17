@@ -9,7 +9,7 @@ set -u
 set -o pipefail
 
 # Dependencies:
-# - _colors.sh (for color variables like RED, YELLOW, RESET)
+# - _colors.sh (for color variables like NEON_RED, ELECTRIC_YELLOW, RESET)
 # - _crypto.sh (for encrypt_data, decrypt_data)
 # - _utils.sh (for pause, clear_screen, trim, get_master_password)
 # - _config.sh (for update_save_location_in_config)
@@ -32,7 +32,7 @@ load_entries() {
     echo "$json_content"
     return 0
   else
-    echo -e "${RED}🚫 Error: In-memory data is corrupted or not valid JSON. Unable to load entries.${RESET}" >&2
+    echo -e "${NEON_RED}🚫 Error: In-memory data is corrupted or not valid JSON. Unable to load entries.${RESET}" >&2
     echo "[]" # Return an empty array to prevent further jq errors in calling functions
     return 1 # Indicate an error occurred
   fi
@@ -44,7 +44,7 @@ load_entries() {
 #   $1: The JSON data to save.
 save_entries() {
   CREDENTIALS_DATA="$1"
-  echo -e "${GREEN}✅ Changes saved to in-memory data.${RESET}"
+  echo -e "${LIME_GREEN}✅ Changes saved to in-memory data.${RESET}"
   # Note: Actual encryption to disk happens on script exit via cleanup_on_exit trap.
 }
 
@@ -65,7 +65,7 @@ read_encrypted_file() {
   local decrypt_status=$?
 
   if [[ "$decrypt_status" -ne 0 ]]; then
-    echo -e "${RED}❌ Decryption failed for '${filepath}'. Incorrect password or corrupted file.${RESET}" >&2
+    echo -e "${NEON_RED}❌ Decryption failed for '${filepath}'. Incorrect password or corrupted file.${RESET}" >&2
     return 1
   fi
 
@@ -73,7 +73,7 @@ read_encrypted_file() {
     CREDENTIALS_DATA="$decrypted_content" # Update the global in-memory data
     return 0
   else
-    echo -e "${RED}🚫 Error: Decrypted data from '${filepath}' is corrupted or not valid JSON. Unable to load.${RESET}" >&2
+    echo -e "${NEON_RED}🚫 Error: Decrypted data from '${filepath}' is corrupted or not valid JSON. Unable to load.${RESET}" >&2
     CREDENTIALS_DATA="[]" # Reset in-memory data to empty array to prevent further errors
     return 1
   fi
@@ -97,12 +97,12 @@ write_encrypted_file() {
     if [[ $? -eq 0 ]]; then
       return 0
     else
-      echo -e "${RED}❌ Failed to move encrypted data to final file '${filepath}'. Check permissions.${RESET}" >&2
+      echo -e "${NEON_RED}❌ Failed to move encrypted data to final file '${filepath}'. Check permissions.${RESET}" >&2
       rm -f "$temp_encrypted_file"
       return 1
     fi
   else
-    echo -e "${RED}❌ Failed to encrypt data for '${filepath}'.${RESET}" >&2
+    echo -e "${NEON_RED}❌ Failed to encrypt data for '${filepath}'.${RESET}" >&2
     rm -f "$temp_encrypted_file"
     return 1
   fi
@@ -114,20 +114,20 @@ write_encrypted_file() {
 #   0 on success, 1 on cancellation or failure.
 load_external_credentials() {
   clear_screen
-  echo -e "${BOLD}${MAGENTA}--- Load External Credentials File ---${RESET}"
-  echo -e "${CYAN}💡 Enter the full path to the encrypted file you wish to load.${RESET}"
-  echo -e "${CYAN}Type '${BOLD}C${RESET}${CYAN}' to cancel.${RESET}\n"
+  echo -e "${BRIGHT_BOLD}${VIOLET}--- Load External Credentials File ---${RESET}"
+  echo -e "${AQUA}💡 Enter the full path to the encrypted file you wish to load.${RESET}"
+  echo -e "${AQUA}Type '${BRIGHT_BOLD}C${RESET}${AQUA}' to cancel.${RESET}\n"
 
   local external_file_path
   while true; do
-    read -rp "$(printf "${YELLOW}📁 Enter path to encrypted file: ${RESET}") " external_file_path_input
+    read -rp "$(printf "${ELECTRIC_YELLOW}📁 Enter path to encrypted file: ${RESET}") " external_file_path_input
     external_file_path=$(trim "$external_file_path_input")
     echo "" # Extra space
 
     local lower_input
     lower_input=$(echo "$external_file_path" | tr '[:upper:]' '[:lower:]')
     if [[ "$lower_input" == "c" ]]; then
-      echo -e "${CYAN}Operation cancelled. Returning to main menu.${RESET}"
+      echo -e "${AQUA}Operation cancelled. Returning to main menu.${RESET}"
       pause
       return 1 # Indicate cancellation
     fi
@@ -135,7 +135,7 @@ load_external_credentials() {
     if [[ -f "$external_file_path" ]]; then
       break
     else
-      echo -e "${RED}❌ File not found at '${BOLD}$external_file_path${RESET}${RED}'. Please enter a valid path or type '${CYAN}C${RED}' to cancel.${RESET}"
+      echo -e "${NEON_RED}❌ File not found at '${BRIGHT_BOLD}$external_file_path${RESET}${NEON_RED}'. Please enter a valid path or type '${AQUA}C${NEON_RED}' to cancel.${RESET}"
       echo "" # Extra space
     fi
   done
@@ -145,39 +145,39 @@ load_external_credentials() {
   get_master_password "🔑 Enter master password for '${external_file_path}': " external_file_master_pass "false"
 
   if [[ -z "$external_file_master_pass" ]]; then
-    echo -e "${RED}🚫 Master password not provided. Aborting load.${RESET}"
+    echo -e "${NEON_RED}🚫 Master password not provided. Aborting load.${RESET}"
     pause
     return 1
   fi
 
-  echo -e "${CYAN}Attempting to decrypt and load credentials from ${BOLD}${external_file_path}${RESET}${CYAN}...${RESET}"
+  echo -e "${AQUA}Attempting to decrypt and load credentials from ${BRIGHT_BOLD}${external_file_path}${RESET}${AQUA}...${RESET}"
   if read_encrypted_file "$external_file_path" "$external_file_master_pass"; then
-    echo -e "${GREEN}✅ Credentials from ${BOLD}${external_file_path}${RESET}${GREEN} loaded successfully!${RESET}"
+    echo -e "${LIME_GREEN}✅ Credentials from ${BRIGHT_BOLD}${external_file_path}${RESET}${LIME_GREEN} loaded successfully!${RESET}"
 
     local make_permanent
     while true; do
-      read -rp "$(printf "${YELLOW}Do you want to make this the ${BOLD}default${RESET}${YELLOW} credentials file for future sessions? (${BOLD}y/N${RESET}${YELLOW}):${RESET}") " make_permanent_input
+      read -rp "$(printf "${ELECTRIC_YELLOW}Do you want to make this the ${BRIGHT_BOLD}default${RESET}${ELECTRIC_YELLOW} credentials file for future sessions? (${BRIGHT_BOLD}y/N${RESET}${ELECTRIC_YELLOW}):${RESET}") " make_permanent_input
       make_permanent=$(trim "${make_permanent_input:-n}") # Default to 'n' (temporary)
       echo "" # Extra space
       local lower_input=$(echo "$make_permanent" | tr '[:upper:]' '[:lower:]')
       if [[ "$lower_input" == "c" ]]; then
-        echo -e "${CYAN}Operation cancelled. File loaded temporarily.${RESET}"
+        echo -e "${AQUA}Operation cancelled. File loaded temporarily.${RESET}"
         # Still return 0 as file was loaded, just not permanently set
         return 0
       fi
       if [[ "$make_permanent" =~ ^[yYnN]$ ]]; then
         break
       fi
-      echo -e "${RED}🚫 Invalid input. Please enter '${BOLD}Y${RESET}${RED}' for Yes, '${BOLD}N${RESET}${RED}' for No, or '${CYAN}C${RED}' to cancel.${RESET}"
+      echo -e "${NEON_RED}🚫 Invalid input. Please enter '${BRIGHT_BOLD}Y${RESET}${NEON_RED}' for Yes, '${BRIGHT_BOLD}N${RESET}${NEON_RED}' for No, or '${AQUA}C${NEON_RED}' to cancel.${RESET}"
       echo "" # Extra space
     done
 
     if [[ "$make_permanent" =~ ^[yY]$ ]]; then
       # Call function from _config.sh to update the save location in the config file
       update_save_location_in_config "$(dirname "$external_file_path")"
-      echo -e "${GREEN}This file is now set as your default credentials file.${RESET}"
+      echo -e "${LIME_GREEN}This file is now set as your default credentials file.${RESET}"
     else
-      echo -e "${CYAN}File loaded temporarily for this session.${RESET}"
+      echo -e "${AQUA}File loaded temporarily for this session.${RESET}"
     fi
 
     # Update global variables in passman.sh's scope
@@ -190,7 +190,7 @@ load_external_credentials() {
     pause
     return 0
   else
-    echo -e "${RED}❌ Failed to load external credentials. Please check the password and file integrity.${RESET}"
+    echo -e "${NEON_RED}❌ Failed to load external credentials. Please check the password and file integrity.${RESET}"
     pause
     return 1
   fi

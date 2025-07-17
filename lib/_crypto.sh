@@ -9,7 +9,7 @@ set -u
 set -o pipefail
 
 # Dependencies:
-# - _colors.sh (for color variables like RED, GREEN, YELLOW, CYAN, BOLD, RESET)
+# - _colors.sh (for color variables like NEON_RED, LIME_GREEN, ELECTRIC_YELLOW, AQUA, BRIGHT_BOLD, RESET)
 # - _utils.sh (for spinner, trim functions)
 # Global variables from passman.sh that are used here:
 # - ENC_JSON_FILE: Path to the securely encrypted file.
@@ -50,9 +50,9 @@ decrypt_data() {
 cleanup_on_exit() {
   # Only attempt to save if authenticated and MASTER_PASSWORD is set
   if [[ "$IS_AUTHENTICATED" == "true" && -n "${MASTER_PASSWORD:-}" ]]; then
-    echo -e "\n${BOLD}${BLUE}-----------------------------------------------------${RESET}"
-    echo -e "${BOLD}${BLUE}  🔐 Securely saving and cleaning up...${RESET}"
-    echo -e "${BOLD}${BLUE}-----------------------------------------------------${RESET}"
+    echo -e "\n${BRIGHT_BOLD}${CYBER_BLUE}-----------------------------------------------------${RESET}"
+    echo -e "${BRIGHT_BOLD}${CYBER_BLUE}  🔐 Securely saving and cleaning up...${RESET}"
+    echo -e "${BRIGHT_BOLD}${CYBER_BLUE}-----------------------------------------------------${RESET}"
 
     local temp_encrypted_content
     temp_encrypted_content=$(mktemp) # Create a temporary file for encrypted content
@@ -71,29 +71,29 @@ cleanup_on_exit() {
       if [[ -s "$temp_openssl_stderr" ]]; then # If stderr file has content
         cat "$temp_openssl_stderr" >&2 # Display openssl's error if encryption failed
       fi
-      echo -e "${RED}❌ Error: Failed to encrypt data on exit. Your data might not be fully saved securely.${RESET}" >&2
+      echo -e "${NEON_RED}❌ Error: Failed to encrypt data on exit. Your data might not be fully saved securely.${RESET}" >&2
       rm -f "$temp_encrypted_content" # Clean up temp encrypted file on failure
     else
       mv "$temp_encrypted_content" "$ENC_JSON_FILE"
       if [[ $? -eq 0 ]]; then
-        echo -e "${GREEN}✅ Credentials securely saved to ${BOLD}${ENC_JSON_FILE}${RESET}${GREEN}.${RESET}"
+        echo -e "${LIME_GREEN}✅ Credentials securely saved to ${BRIGHT_BOLD}${ENC_JSON_FILE}${RESET}${LIME_GREEN}.${RESET}"
       else
-        echo -e "${RED}❌ Failed to move encrypted data to final file. Check permissions.${RESET}" >&2
+        echo -e "${NEON_RED}❌ Failed to move encrypted data to final file. Check permissions.${RESET}" >&2
       fi
     fi
     rm -f "$temp_openssl_stderr" # Clean up stderr temp file
   else
-    echo -e "\n${BOLD}${BLUE}-----------------------------------------------------${RESET}"
-    echo -e "${BOLD}${BLUE}  🔐 Skipping save: Not authenticated or master password not set.${RESET}"
-    echo -e "${BOLD}${BLUE}-----------------------------------------------------${RESET}"
+    echo -e "\n${BRIGHT_BOLD}${CYBER_BLUE}-----------------------------------------------------${RESET}"
+    echo -e "${BRIGHT_BOLD}${CYBER_BLUE}  🔐 Skipping save: Not authenticated or master password not set.${RESET}"
+    echo -e "${BRIGHT_BOLD}${CYBER_BLUE}-----------------------------------------------------${RESET}"
   fi
 
   # Final security reminder
-  echo -e "\\n${BOLD}${RED}--- IMPORTANT SECURITY REMINDER ---${RESET}"
-  echo -e "${RED}Your password data was handled in-memory during this session.${RESET}"
-  echo -e "${RED}No plaintext data should have been written to disk.${RESET}"
-  echo -e "${RED}For maximum security, always ensure your system is free from malware and memory dumps are cleared.${RESET}"
-  echo -e "${BOLD}${RED}-----------------------------------${RESET}"
+  echo -e "\\n${BRIGHT_BOLD}${NEON_RED}--- IMPORTANT SECURITY REMINDER ---${RESET}"
+  echo -e "${NEON_RED}Your password data was handled in-memory during this session.${RESET}"
+  echo -e "${NEON_RED}No plaintext data should have been written to disk.${RESET}"
+  echo -e "${NEON_RED}For maximum security, always ensure your system is free from malware and memory dumps are cleared.${RESET}"
+  echo -e "${BRIGHT_BOLD}${NEON_RED}-----------------------------------${RESET}"
 
   # Unset sensitive variables from memory
   unset MASTER_PASSWORD # Unset the variable to ensure it's not lingering
