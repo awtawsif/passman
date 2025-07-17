@@ -155,7 +155,21 @@ main_loop() {
         4) edit_entry ;; # from _crud_operations.sh
         5) remove_entry ;; # from _crud_operations.sh
         6) echo -e "${CYAN}👋 Goodbye! Your data is securely locked.${RESET}"; exit 0 ;; # Exits, triggering trap
-        7) change_master_password ;; # from _change_master.sh
+        7)
+          # Store current state before attempting to change master password
+          local original_master_password_before_change="$MASTER_PASSWORD"
+          local original_credentials_data_before_change="$CREDENTIALS_DATA"
+
+          if change_master_password; then
+            echo -e "${GREEN}Master password updated successfully.${RESET}"
+          else
+            echo -e "${RED}Failed to change master password. Reverting to previous password and data.${RESET}"
+            # Revert to original state if change failed
+            MASTER_PASSWORD="$original_master_password_before_change"
+            CREDENTIALS_DATA="$original_credentials_data_before_change"
+            # No need to change ENC_JSON_FILE as it would not have been moved if encryption failed
+          fi
+          ;;
         8) manage_settings ;; # from _config.sh
         9)
           # Store current state in temporary variables in case the load operation fails.

@@ -12,6 +12,7 @@ set -o pipefail
 # - _colors.sh (for color variables like RED, YELLOW, RESET)
 # - _crypto.sh (for encrypt_data, decrypt_data)
 # - _utils.sh (for pause, clear_screen, trim, get_master_password)
+# - _config.sh (for update_save_location_in_config)
 # Global variables from passman.sh that are used here:
 # - CREDENTIALS_DATA: The in-memory decrypted plaintext JSON data.
 # - ENC_JSON_FILE: Path to the securely encrypted file (read-only here, updated in passman.sh).
@@ -151,11 +152,41 @@ load_external_credentials() {
 
   echo -e "${CYAN}Attempting to decrypt and load credentials from ${BOLD}${external_file_path}${RESET}${CYAN}...${RESET}"
   if read_encrypted_file "$external_file_path" "$external_file_master_pass"; then
-    # If successful, update the global variables
+    echo -e "${GREEN}✅ Credentials from ${BOLD}${external_file_path}${RESET}${GREEN} loaded successfully!${RESET}"
+
+    local make_permanent
+    while true; do
+      read -rp "$(printf "${YELLOW}Do you want to make this the ${BOLD}default${RESET}${YELLOW} credentials file for future sessions? (${BOLD}y/N${RESET}${YELLOW}):${RESET}") " make_permanent_input
+      make_permanent=$(trim "${make_permanent_input:-n}") # Default to 'n' (temporary)
+      echo "" # Extra space
+      local lower_input=$(echo "$make_permanent" | tr '[:upper:]' '[:lower:]')
+      if [[ "$lower_input" == "c" ]]; then
+        echo -e "${CYAN}Operation cancelled. File loaded temporarily.${RESET}"
+        # Still return 0 as file was loaded, just not permanently set
+        return 0
+      fi
+      if [[ "$make_permanent" =~ ^[yYnN]$ ]]; then
+        break
+      fi
+      echo -e "${RED}🚫 Invalid input. Please enter '${BOLD}Y${RESET}${RED}' for Yes, '${BOLD}N${RESET}${RED}' for No, or '${CYAN}C${RED}' to cancel.${RESET}"
+      echo "" # Extra space
+    done
+
+    if [[ "$make_permanent" =~ ^[yY]$ ]]; then
+      # Call function from _config.sh to update the save location in the config file
+      update_save_location_in_config "$(dirname "$external_file_path")"
+      echo -e "${GREEN}This file is now set as your default credentials file.${RESET}"
+    else
+      echo -e "${CYAN}File loaded temporarily for this session.${RESET}"
+    fi
+
+    # Update global variables in passman.sh's scope
+    # This is done by directly assigning to the global variables
+    # which are sourced by passman.sh.
+    # The calling script (passman.sh) will now rely on these globals directly.
     ENC_JSON_FILE="$external_file_path"
     MASTER_PASSWORD="$external_file_master_pass"
     IS_AUTHENTICATED="true" # Mark as authenticated with the new file
-    echo -e "${GREEN}✅ Credentials from ${BOLD}${external_file_path}${RESET}${GREEN} loaded successfully!${RESET}"
     pause
     return 0
   else

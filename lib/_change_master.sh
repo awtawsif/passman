@@ -17,15 +17,16 @@ change_master_password() {
   if [[ -z "$current_pass" ]]; then
     echo -e "${RED}🚫 No password entered. Aborting.${RESET}"
     pause
-    return
+    return 1 # Indicate failure/cancellation
   fi
 
   # Attempt to decrypt with current password to verify
   # We decrypt the *existing* encrypted file with the *current* password to verify it.
-  if ! decrypt_data "$ENC_JSON_FILE" "$current_pass" >/dev/null 2>&1; then
+  # Redirect stderr to /dev/null to suppress openssl errors during verification
+  if ! decrypt_data "$ENC_JSON_FILE" "$current_pass" >/dev/null 2>/dev/null; then
     echo -e "${RED}❌ Incorrect current master password. Aborting.${RESET}"
     pause
-    return
+    return 1 # Indicate failure
   fi
 
   # Prompt for new password (with confirmation)
@@ -34,31 +35,38 @@ change_master_password() {
   if [[ -z "$new_pass" ]]; then
     echo -e "${RED}🚫 New password not set. Aborting.${RESET}"
     pause
-    return
+    return 1 # Indicate failure/cancellation
   fi
 
   if [[ "$new_pass" == "$current_pass" ]]; then
     echo -e "${YELLOW}New password is the same as the current password. No changes made.${RESET}"
     pause
-    return
+    return 0 # Indicate success (no change needed)
   fi
 
   # Encrypt the in-memory data with the new password
   local temp_encrypted_file
   temp_encrypted_file=$(mktemp)
-  if ! encrypt_data "$CREDENTIALS_DATA" "$new_pass" > "$temp_encrypted_file" 2>/dev/null; then
+  # Redirect stderr of encrypt_data to /dev/null to suppress openssl errors
+  if ! encrypt_data "$CREDENTIALS_DATA" "$new_pass" "$temp_encrypted_file" 2>/dev/null; then
     echo -e "${RED}❌ Failed to encrypt data with new password. Aborting.${RESET}"
     rm -f "$temp_encrypted_file"
     pause
-    return
+    return 1 # Indicate failure
   fi
 
-  # Overwrite the encrypted file with the newly encrypted data
+  # Overwrite the encrypted file with the newly encrypted content
   mv "$temp_encrypted_file" "$ENC_JSON_FILE"
+  if [[ $? -ne 0 ]]; then
+    echo -e "${RED}❌ Failed to move encrypted data to final file. Check permissions.${RESET}"
+    rm -f "$temp_encrypted_file" # Clean up temp file
+    pause
+    return 1 # Indicate failure
+  fi
 
-  # Update in-memory master password for this session
+  # Update the global MASTER_PASSWORD only after successful change
   MASTER_PASSWORD="$new_pass"
-
-  echo -e "${GREEN}✅ Master password changed successfully!${RESET}"
+  echo -e "${GREEN}✅ Master password successfully changed!${RESET}"
   pause
+  return 0 # Indicate success
 }
