@@ -1,13 +1,16 @@
 #!/bin/bash
 # _colors.sh
-# Defines ANSI color escape codes for terminal output.
+# Defines unique ANSI color escape codes for a "Cyberpunk" terminal output theme.
 
-# === COLORS ===
-RED='\033[0;31m'    # Error messages, warnings
-GREEN='\033[0;32m'  # Success messages, positive feedback
-YELLOW='\033[1;33m' # Prompts, important information
-CYAN='\033[0;36m'   # General information, hints, decorative elements
-BLUE='\033[0;34m'   # For stronger emphasis or decorative lines
-MAGENTA='\033[0;35m' # For unique section headers
-BOLD='\033[1m'      # Bold text
-RESET='\033[0m'     # Reset all attributes
+# === CYBERPUNK COLOR PALETTE ===
+NEON_RED='\033[1;91m'    # Critical errors, warnings that demand immediate attention
+LIME_GREEN='\033[1;92m'  # Success messages, positive confirmations, secure actions
+ELECTRIC_YELLOW='\033[1;93m' # Prompts, important user input fields, highlights
+CYBER_BLUE='\033[0;34m'   # General information, hints, subtle guidance
+VIOLET='\033[1;35m'      # Distinct section headers, main menu titles
+AQUA='\033[1;36m'        # Stronger emphasis, decorative lines, special features
+DIM_GREY='\033[0;90m'    # Less important information, subtle separators, background text
+
+# === TEXT ATTRIBUTES ===
+BRIGHT_BOLD='\033[1m\033[1;97m'           # Standard bold text (can be combined with colors)
+RESET='\033[0m'          # Reset all attributes to default

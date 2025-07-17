@@ -10,7 +10,6 @@ set -e
 # Treat unset variables as an error and exit.
 set -u
 # Print commands and their arguments as they are executed (useful for debugging).
-# set -x # Uncomment for verbose debugging
 # The return value of a pipeline is the value of the last (rightmost) command
 # to exit with a non-zero status, or zero if all commands in the pipeline exit successfully.
 set -o pipefail
@@ -27,36 +26,55 @@ source "${SCRIPT_DIR}/lib/_password_generator.sh" # Password generation logic
 source "${SCRIPT_DIR}/lib/_crud_operations.sh"   # Add, Edit, Remove operations
 source "${SCRIPT_DIR}/lib/_display_search.sh"    # Display and Search functions
 source "${SCRIPT_DIR}/lib/_change_master.sh"     # Change master password logic
+source "${SCRIPT_DIR}/lib/_config.sh"            # Configuration management (new)
 
 # --- Global Variables (Managed by main_loop and cleanup_on_exit) ---
-# The securely encrypted file.
-ENC_JSON_FILE="credentials.json.enc"
-# Temporary file for decrypted plaintext JSON (will be set by mktemp in main_loop).
-DEC_JSON_FILE=""
+# Path to the configuration directory (e.g., where passman.conf is stored)
+CONFIG_DIR="${HOME}/.config/passman" # Changed to a more standard XDG Base Directory location
+# Path to the configuration file
+CONFIG_FILE="${CONFIG_DIR}/passman.conf"
+# Default filename for the encrypted credentials
+DEFAULT_ENC_FILENAME="credentials.json.enc"
+
+# Stores the directory where the encrypted file is saved (loaded from config or defaulted)
+SAVE_LOCATION=""
+# The full path to the securely encrypted file. This will be set dynamically.
+ENC_JSON_FILE=""
+
+# Global config variables, initialized with their defaults (will be overwritten by load_config if specified in file)
+DEFAULT_PASSWORD_LENGTH=12
+DEFAULT_PASSWORD_UPPER="y"
+DEFAULT_PASSWORD_NUMBERS="y"
+DEFAULT_PASSWORD_SYMBOLS="y"
+CLIPBOARD_CLEAR_DELAY=10 # seconds
+DEFAULT_SEARCH_MODE="and" # "and" or "or"
+
 # Stores the master password during the session (critical for crypto functions).
 MASTER_PASSWORD=""
 # Flag to track if the user has authenticated successfully.
 IS_AUTHENTICATED="false"
+# Stores the decrypted JSON data in memory.
+CREDENTIALS_DATA=""
 
 # --- Dependency Checks ---
 # Ensures that 'jq' and 'openssl' are installed.
 check_dependencies() {
-  echo -e "${CYAN}Checking system dependencies...${RESET}"
+  echo -e "${AQUA}Checking system dependencies...${RESET}"
   if ! command -v jq &> /dev/null; then
-    echo -e "${RED}${BOLD}Error: 'jq' is not installed.${RESET}"
-    echo -e "${RED}Please install 'jq' to use this script (e.g., on Debian/Ubuntu: ${YELLOW}sudo apt-get install jq${RED}).${RESET}"
+    echo -e "${NEON_RED}${BRIGHT_BOLD}Error: 'jq' is not installed.${RESET}"
+    echo -e "${NEON_RED}Please install 'jq' to use this script (e.g., on Debian/Ubuntu: ${ELECTRIC_YELLOW}sudo apt-get install jq${NEON_RED}).${RESET}"
     exit 1
   fi
   if ! command -v openssl &> /dev/null; then
-    echo -e "${RED}${BOLD}Error: 'openssl' is not installed.${RESET}"
-    echo -e "${RED}Please install 'openssl' to use this script (e.g., on Debian/Ubuntu: ${YELLOW}sudo apt-get install openssl${RED}).${RESET}"
+    echo -e "${NEON_RED}${BRIGHT_BOLD}Error: 'openssl' is not installed.${RESET}"
+    echo -e "${NEON_RED}Please install 'openssl' to use this script (e.g., on Debian/Ubuntu: ${ELECTRIC_YELLOW}sudo apt-get install openssl${NEON_RED}).${RESET}"
     exit 1
   fi
   # Clipboard utility check (warn only)
   if ! command -v xclip &> /dev/null && ! command -v pbcopy &> /dev/null; then
-    echo -e "${YELLOW}⚠️  Clipboard integration not available. Install ${BOLD}xclip${RESET}${YELLOW} (Linux) or ${BOLD}pbcopy${RESET}${YELLOW} (macOS) for copy-to-clipboard support.${RESET}"
+    echo -e "${ELECTRIC_YELLOW}⚠️  Clipboard integration not available. Install ${BRIGHT_BOLD}xclip${RESET}${ELECTRIC_YELLOW} (Linux) or ${BRIGHT_BOLD}pbcopy${RESET}${ELECTRIC_YELLOW} (macOS) for copy-to-clipboard support.${RESET}"
   fi
-  echo -e "${GREEN}Dependencies met. Proceeding...${RESET}\n"
+  echo -e "${LIME_GREEN}Dependencies met. Proceeding...${RESET}\n"
 }
 
 # --- MAIN APPLICATION LOGIC ---
@@ -66,71 +84,47 @@ main_loop() {
   # Ensure all necessary external tools (jq, openssl) are installed
   check_dependencies
 
-  # Create a temporary file for decrypted data. mktemp is safer than fixed names.
-  # Using --tmpdir="$PWD" would keep it in the current directory if desired,
-  # but letting mktemp choose default secure location is generally best practice.
-  # The DEC_JSON_FILE is declared globally and used by crypto/data functions.
-  DEC_JSON_FILE=$(mktemp)
-  if [[ ! -f "$DEC_JSON_FILE" ]]; then
-    echo -e "${RED}🚫 Error: Failed to create temporary file for decrypted data. Exiting.${RESET}"
-    exit 1
-  fi
-  # The trap defined in _crypto.sh ensures this file is cleaned up on exit.
+  # Load the saved configuration for file location and other settings, sets ENC_JSON_FILE
+  load_config
 
   # Handle initial setup or regular login
   if [[ ! -f "$ENC_JSON_FILE" ]]; then
-    echo -e "${YELLOW}🔑 No encrypted credentials file found. This appears to be your first run.${RESET}"
-    echo -e "${YELLOW}You'll be prompted to set up your master password for encryption.${RESET}"
-    echo -e "${BOLD}${RED}🚨 WARNING: Remember this password! There is NO recovery if you forget it.${RESET}"
+    echo -e "${ELECTRIC_YELLOW}🔑 No encrypted credentials file found at ${BRIGHT_BOLD}${ENC_JSON_FILE}${RESET}${ELECTRIC_YELLOW}. This appears to be your first run or the file was moved.${RESET}"
+    echo -e "${ELECTRIC_YELLOW}You'll be prompted to set up your master password for encryption.${RESET}"
+    echo -e "${BRIGHT_BOLD}${NEON_RED}🚨 WARNING: Remember this password! There is NO recovery if you forget it.${RESET}"
     # get_master_password is from _utils.sh
     get_master_password "Set your new master password: " MASTER_PASSWORD "true" # Prompt for confirmation
 
     if [[ -z "$MASTER_PASSWORD" ]]; then
-      echo -e "${RED}🚫 Master password not set. Exiting.${RESET}"
+      echo -e "${NEON_RED}🚫 Master password not set. Exiting.${RESET}"
       exit 1
     fi
 
-    # Create an empty encrypted JSON array and save it
-    # We save an empty JSON array to the temporary decrypted file first
-    # then the cleanup_on_exit trap will encrypt it to ENC_JSON_FILE
-    printf "%s" "[]" > "$DEC_JSON_FILE"
+    # Initialize in-memory data with an empty JSON array
+    CREDENTIALS_DATA="[]"
     IS_AUTHENTICATED="true" # Mark as authenticated so cleanup will encrypt
-    echo -e "${GREEN}✅ Initial credentials file created and encrypted!${RESET}"
+    echo -e "${LIME_GREEN}✅ Initial credentials file created and encrypted!${RESET}"
     clear_screen # Clear after initial setup messages
 
   else
     # Regular login: Prompt for master password and decrypt
-    echo -e "${BOLD}${MAGENTA}--- Welcome Back! ---${RESET}"
-    echo -e "${CYAN}Enter your master password to unlock your credentials.${RESET}\n"
+    echo -e "${BRIGHT_BOLD}${VIOLET}--- Welcome Back! ---${RESET}"
+    echo -e "${AQUA}Enter your master password to unlock your credentials.${RESET}\n"
     get_master_password "🔑 Enter master password to unlock: " MASTER_PASSWORD "false"
 
     if [[ -z "$MASTER_PASSWORD" ]]; then
-      echo -e "${RED}🚫 Master password not provided. Exiting.${RESET}"
+      echo -e "${NEON_RED}🚫 Master password not provided. Exiting.${RESET}"
       exit 1
     fi
 
-    echo -e "${CYAN}Attempting to decrypt credentials...${RESET}"
-    # decrypt_data is from _crypto.sh
-    # Redirect stderr of decrypt_data to /dev/null to suppress OpenSSL warnings/errors
-    local decrypted_content=$(decrypt_data "$ENC_JSON_FILE" "$MASTER_PASSWORD" 2>/dev/null)
-    local decrypt_status=$?
-
-    if [[ "$decrypt_status" -ne 0 ]]; then
-      echo -e "${RED}❌ Incorrect master password or corrupted file. Please verify your password and try again.${RESET}"
-      exit 1 # Exit, cleanup_on_exit will run and delete the empty temp file if it was created.
-    fi
-
-    # If openssl returned 0, it means decryption *appeared* to succeed,
-    # but the content might still not be valid JSON (e.g., if the file was corrupted
-    # but the password was technically correct, or openssl produced non-JSON output).
-    # This check is crucial to catch that.
-    if echo "$decrypted_content" | jq -e . &>/dev/null; then
-      printf "%s" "$decrypted_content" > "$DEC_JSON_FILE"
+    echo -e "${AQUA}Attempting to decrypt credentials from ${BRIGHT_BOLD}${ENC_JSON_FILE}${RESET}${AQUA}...${RESET}"
+    # read_encrypted_file is from _data_storage.sh
+    if read_encrypted_file "$ENC_JSON_FILE" "$MASTER_PASSWORD"; then
       IS_AUTHENTICATED="true" # Mark as authenticated
-      echo -e "${GREEN}✅ Credentials decrypted successfully!${RESET}"
+      echo -e "${LIME_GREEN}✅ Credentials decrypted successfully!${RESET}"
       clear_screen
     else
-      echo -e "${RED}❌ The decrypted content is corrupted or not valid JSON. Unable to proceed. Please check the encrypted file.${RESET}" >&2
+      echo -e "${NEON_RED}❌ Incorrect master password or corrupted file. Please verify your password and try again.${RESET}"
       exit 1
     fi
   fi
@@ -138,17 +132,19 @@ main_loop() {
   # Main menu loop (only accessible if authenticated)
   if [[ "$IS_AUTHENTICATED" == "true" ]]; then
     while true; do
-      echo -e "${BOLD}${MAGENTA}--- Main Menu ---${RESET}"
-      echo -e "${CYAN}Select an option to manage your passwords.${RESET}\n"
-      echo -e "${BOLD}1)${RESET} ${YELLOW}Add new entry${RESET}"
-      echo -e "${BOLD}2)${RESET} ${YELLOW}Search entries${RESET}"
-      echo -e "${BOLD}3)${RESET} ${YELLOW}View all entries${RESET}"
-      echo -e "${BOLD}4)${RESET} ${YELLOW}Edit existing entry${RESET}"
-      echo -e "${BOLD}5)${RESET} ${YELLOW}Remove entry${RESET}"
-      echo -e "${BOLD}6)${RESET} ${YELLOW}Quit${RESET}"
-      echo -e "${BOLD}7)${RESET} ${YELLOW}Change master password${RESET}"
+      echo -e "${BRIGHT_BOLD}${VIOLET}--- Main Menu ---${RESET}"
+      echo -e "${AQUA}Select an option to manage your passwords.${RESET}\n"
+      echo -e "${BRIGHT_BOLD}1)${RESET} ${ELECTRIC_YELLOW}Add new entry${RESET}"
+      echo -e "${BRIGHT_BOLD}2)${RESET} ${ELECTRIC_YELLOW}Search entries${RESET}"
+      echo -e "${BRIGHT_BOLD}3)${RESET} ${ELECTRIC_YELLOW}View all entries${RESET}"
+      echo -e "${BRIGHT_BOLD}4)${RESET} ${ELECTRIC_YELLOW}Edit existing entry${RESET}"
+      echo -e "${BRIGHT_BOLD}5)${RESET} ${ELECTRIC_YELLOW}Remove entry${RESET}"
+      echo -e "${BRIGHT_BOLD}6)${RESET} ${ELECTRIC_YELLOW}Quit${RESET}"
+      echo -e "${BRIGHT_BOLD}7)${RESET} ${ELECTRIC_YELLOW}Change master password${RESET}"
+      echo -e "${BRIGHT_BOLD}8)${RESET} ${ELECTRIC_YELLOW}Manage Settings${RESET}"
+      echo -e "${BRIGHT_BOLD}9)${RESET} ${ELECTRIC_YELLOW}Load another credentials file${RESET}" # New menu item
       echo "" # Extra space
-      read -p "$(printf "${YELLOW}Enter your choice [1-7]:${RESET} ") " choice
+      read -rp "$(printf "${ELECTRIC_YELLOW}Enter your choice [1-9]:${RESET} ") " choice
       choice=$(trim "$choice") # trim is from _utils.sh
       echo "" # Extra space
 
@@ -158,9 +154,44 @@ main_loop() {
         3) view_all_entries_menu ;; # from _display_search.sh
         4) edit_entry ;; # from _crud_operations.sh
         5) remove_entry ;; # from _crud_operations.sh
-        6) echo -e "${CYAN}👋 Goodbye! Your data is securely locked.${RESET}"; exit 0 ;; # Exits, triggering trap
-        7) change_master_password ;; # from _change_master.sh
-        *) echo -e "${RED}❌ Invalid option. Please enter a number between ${BOLD}1${RESET}${RED} and ${BOLD}7${RESET}${RED}.${RESET}" ;;
+        6) echo -e "${AQUA}👋 Goodbye! Your data is securely locked.${RESET}"; exit 0 ;; # Exits, triggering trap
+        7)
+          # Store current state before attempting to change master password
+          local original_master_password_before_change="$MASTER_PASSWORD"
+          local original_credentials_data_before_change="$CREDENTIALS_DATA"
+
+          if change_master_password; then
+            echo -e "${LIME_GREEN}Master password updated successfully.${RESET}"
+          else
+            echo -e "${NEON_RED}Failed to change master password. Reverting to previous password and data.${RESET}"
+            # Revert to original state if change failed
+            MASTER_PASSWORD="$original_master_password_before_change"
+            CREDENTIALS_DATA="$original_credentials_data_before_change"
+            # No need to change ENC_JSON_FILE as it would not have been moved if encryption failed
+          fi
+          ;;
+        8) manage_settings ;; # from _config.sh
+        9)
+          # Store current state in temporary variables in case the load operation fails.
+          local original_enc_json_file="$ENC_JSON_FILE"
+          local original_master_password="$MASTER_PASSWORD"
+          local original_credentials_data="$CREDENTIALS_DATA"
+          local original_is_authenticated="$IS_AUTHENTICATED"
+
+          # Call the function to load an external file.
+          # This function now directly updates the global variables if successful.
+          if load_external_credentials; then
+            echo -e "${LIME_GREEN}Successfully switched to new credentials file.${RESET}"
+          else
+            echo -e "${ELECTRIC_YELLOW}Failed to load external credentials or operation cancelled. Reverting to previous session.${RESET}"
+            # Revert global variables to their original state
+            ENC_JSON_FILE="$original_enc_json_file"
+            MASTER_PASSWORD="$original_master_password"
+            CREDENTIALS_DATA="$original_credentials_data"
+            IS_AUTHENTICATED="$original_is_authenticated"
+          fi
+          ;;
+        *) echo -e "${NEON_RED}❌ Invalid option. Please enter a number between ${BRIGHT_BOLD}1${RESET}${NEON_RED} and ${BRIGHT_BOLD}9${RESET}${NEON_RED}.${RESET}" ;;
       esac
     done
   fi
