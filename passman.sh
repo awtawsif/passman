@@ -118,28 +118,13 @@ main_loop() {
     fi
 
     echo -e "${CYAN}Attempting to decrypt credentials from ${BOLD}${ENC_JSON_FILE}${RESET}${CYAN}...${RESET}"
-    # decrypt_data is from _crypto.sh
-    # Redirect stderr of decrypt_data to /dev/null to suppress OpenSSL warnings/errors
-    local decrypted_content
-    decrypted_content=$(decrypt_data "$ENC_JSON_FILE" "$MASTER_PASSWORD" 2>/dev/null)
-    local decrypt_status=$?
-
-    if [[ "$decrypt_status" -ne 0 ]]; then
-      echo -e "${RED}❌ Incorrect master password or corrupted file. Please verify your password and try again.${RESET}"
-      exit 1
-    fi
-
-    # If openssl returned 0, it means decryption *appeared* to succeed,
-    # but the content might still not be valid JSON (e.g., if the file was corrupted
-    # but the password was technically correct, or openssl produced non-JSON output).
-    # This check is crucial to catch that.
-    if echo "$decrypted_content" | jq -e . &>/dev/null; then
-      CREDENTIALS_DATA="$decrypted_content" # Store decrypted content in memory
+    # read_encrypted_file is from _data_storage.sh
+    if read_encrypted_file "$ENC_JSON_FILE" "$MASTER_PASSWORD"; then
       IS_AUTHENTICATED="true" # Mark as authenticated
       echo -e "${GREEN}✅ Credentials decrypted successfully!${RESET}"
       clear_screen
     else
-      echo -e "${RED}❌ The decrypted content is corrupted or not valid JSON. Unable to proceed. Please check the encrypted file.${RESET}" >&2
+      echo -e "${RED}❌ Incorrect master password or corrupted file. Please verify your password and try again.${RESET}"
       exit 1
     fi
   fi
@@ -156,9 +141,10 @@ main_loop() {
       echo -e "${BOLD}5)${RESET} ${YELLOW}Remove entry${RESET}"
       echo -e "${BOLD}6)${RESET} ${YELLOW}Quit${RESET}"
       echo -e "${BOLD}7)${RESET} ${YELLOW}Change master password${RESET}"
-      echo -e "${BOLD}8)${RESET} ${YELLOW}Manage Settings${RESET}" # Updated menu item
+      echo -e "${BOLD}8)${RESET} ${YELLOW}Manage Settings${RESET}"
+      echo -e "${BOLD}9)${RESET} ${YELLOW}Load another credentials file${RESET}" # New menu item
       echo "" # Extra space
-      read -rp "$(printf "${YELLOW}Enter your choice [1-8]:${RESET} ") " choice
+      read -rp "$(printf "${YELLOW}Enter your choice [1-9]:${RESET} ") " choice
       choice=$(trim "$choice") # trim is from _utils.sh
       echo "" # Extra space
 
@@ -170,8 +156,28 @@ main_loop() {
         5) remove_entry ;; # from _crud_operations.sh
         6) echo -e "${CYAN}👋 Goodbye! Your data is securely locked.${RESET}"; exit 0 ;; # Exits, triggering trap
         7) change_master_password ;; # from _change_master.sh
-        8) manage_settings ;; # from _config.sh (new)
-        *) echo -e "${RED}❌ Invalid option. Please enter a number between ${BOLD}1${RESET}${RED} and ${BOLD}8${RESET}${RED}.${RESET}" ;;
+        8) manage_settings ;; # from _config.sh
+        9)
+          # Store current state in temporary variables in case the load operation fails.
+          local original_enc_json_file="$ENC_JSON_FILE"
+          local original_master_password="$MASTER_PASSWORD"
+          local original_credentials_data="$CREDENTIALS_DATA"
+          local original_is_authenticated="$IS_AUTHENTICATED"
+
+          # Call the function to load an external file.
+          # This function now directly updates the global variables if successful.
+          if load_external_credentials; then
+            echo -e "${GREEN}Successfully switched to new credentials file.${RESET}"
+          else
+            echo -e "${YELLOW}Failed to load external credentials or operation cancelled. Reverting to previous session.${RESET}"
+            # Revert global variables to their original state
+            ENC_JSON_FILE="$original_enc_json_file"
+            MASTER_PASSWORD="$original_master_password"
+            CREDENTIALS_DATA="$original_credentials_data"
+            IS_AUTHENTICATED="$original_is_authenticated"
+          fi
+          ;;
+        *) echo -e "${RED}❌ Invalid option. Please enter a number between ${BOLD}1${RESET}${RED} and ${BOLD}9${RESET}${RED}.${RESET}" ;;
       esac
     done
   fi
