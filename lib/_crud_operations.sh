@@ -444,7 +444,13 @@ edit_entry() {
   done
 
   local new_logged_in_via_temp
-  get_optional_input_with_remove "🔗 Update Logged in via" "$current_logged_in_via" new_logged_in_via_temp # From _utils.sh
+  if ! get_optional_input_with_remove "🔗 Update Logged in via" "$current_logged_in_via" new_logged_in_via_temp; then
+    echo -e "${CYBER_BLUE}Operation cancelled. Returning to main menu.${RESET}" # Added message
+    pause # Added pause
+    clear_screen
+    return
+  fi
+
   if [[ $? -ne 0 ]]; then clear_screen; return; fi # Check for CANCEL and clear screen
 
   local new_email=""
@@ -455,11 +461,19 @@ edit_entry() {
   if [[ -n "$new_logged_in_via_temp" ]]; then
     # If a service is specified, linked email or username is now optionally mandatory (X/BLANK/C allowed)
     while true; do
-      get_optional_input_with_remove "📧 Update Linked email for ${new_logged_in_via_temp}" "$current_linked_email" new_linked_email # From _utils.sh
-      if [[ $? -ne 0 ]]; then clear_screen; return; fi # Check for CANCEL and clear screen
+      if ! get_optional_input_with_remove "📧 Update Linked email for ${new_logged_in_via_temp}" "$current_linked_email" new_linked_email; then
+        echo -e "${CYBER_BLUE}Operation cancelled. Returning to main menu.${RESET}" # Added message
+        pause # Added pause
+        clear_screen
+        return
+      fi
       if [[ -z "$new_linked_email" ]]; then
-        get_optional_input_with_remove "👤 Update Username for ${new_logged_in_via_temp}" "$current_username" new_username
-        if [[ $? -ne 0 ]]; then clear_screen; return; fi
+        if ! get_optional_input_with_remove "👤 Update Username for ${new_logged_in_via_temp}" "$current_username" new_username; then
+          echo -e "${CYBER_BLUE}Operation cancelled. Returning to main menu.${RESET}" # Added message
+          pause # Added pause
+          clear_screen
+          return
+        fi
         if [[ -z "$new_username" ]]; then
           echo -e "${ELECTRIC_YELLOW}Both Linked email and Username were removed or left blank, therefore 'Logged in via' will also be removed for consistency.${RESET}"
           actual_logged_in_via=""
@@ -475,11 +489,19 @@ edit_entry() {
   if [[ -z "$actual_logged_in_via" ]]; then
     # If no service, direct email or username is used and one is mandatory
     while true; do
-      get_optional_input_with_remove "📧 Update Email" "$current_email" new_email
-      if [[ $? -ne 0 ]]; then clear_screen; return; fi
+      if ! get_optional_input_with_remove "📧 Update Email" "$current_email" new_email; then
+        echo -e "${CYBER_BLUE}Operation cancelled. Returning to main menu.${RESET}" # Added message
+        pause # Added pause
+        clear_screen
+        return
+      fi
       if [[ -z "$new_email" ]]; then
-        get_optional_input_with_remove "👤 Update Username" "$current_username" new_username
-        if [[ $? -ne 0 ]]; then clear_screen; return; fi
+        if ! get_optional_input_with_remove "👤 Update Username" "$current_username" new_username; then
+          echo -e "${CYBER_BLUE}Operation cancelled. Returning to main menu.${RESET}" # Added message
+          pause # Added pause
+          clear_screen
+          return
+        fi
         if [[ -z "$new_username" ]]; then
           echo -e "${NEON_RED}🚫 Either Email or Username is required! Please provide at least one.${RESET}"
           continue
@@ -493,8 +515,12 @@ edit_entry() {
   fi
 
   local new_recovery_email
-  get_optional_input_with_remove "🚨 Update Recovery Email" "$current_recovery_email" new_recovery_email # From _utils.sh
-  if [[ $? -ne 0 ]]; then clear_screen; return; fi # Check for CANCEL and clear screen
+  if ! get_optional_input_with_remove "🚨 Update Recovery Email" "$current_recovery_email" new_recovery_email; then
+    echo -e "${CYBER_BLUE}Operation cancelled. Returning to main menu.${RESET}" # Added message
+    pause # Added pause
+    clear_screen
+    return
+  fi
 
   local new_password=""
   local use_generator_choice # Renamed to avoid clash with potential 'use_generator' from password generation block
