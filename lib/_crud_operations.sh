@@ -35,7 +35,7 @@ add_entry() {
       return
     fi
     [[ -n "$website" ]] && break
-    echo -e "${NEON_RED}🚫 Website/Service name cannot be empty! Please provide a value or type '${AQUA}C' to cancel.${RESET}"
+    echo -e "${NEON_RED}🚫 Website/Service name cannot be empty! Please provide a value or type ${AQUA}'C'${RESET}${NEON_RED} to cancel.${RESET}"
     echo "" # Extra space
   done
 
@@ -70,10 +70,10 @@ add_entry() {
     while true; do
       local linked_email_prompt
       if [[ -n "$DEFAULT_EMAIL" ]]; then
-        linked_email_prompt="📧 Enter the email used for ${BRIGHT_BOLD}%s${RESET} (Default: ${BRIGHT_BOLD}%s${RESET}${ELECTRIC_YELLOW}, cannot be empty, '${BRIGHT_BOLD}X${RESET}${ELECTRIC_YELLOW}' to clear default, type 'C' to cancel): ${RESET}"
+        linked_email_prompt="${ELECTRIC_YELLOW}📧 Enter the email used for ${BRIGHT_BOLD}%s${RESET} ${ELECTRIC_YELLOW}(Default: ${BRIGHT_BOLD}%s${RESET}${ELECTRIC_YELLOW}, cannot be empty, '${BRIGHT_BOLD}X${RESET}'${ELECTRIC_YELLOW} to clear default, type '${BRIGHT_BOLD}C${RESET}'${ELECTRIC_YELLOW} to cancel): ${RESET}"
         read -rp "$(printf "$linked_email_prompt" "$logged_in_via" "$DEFAULT_EMAIL")" linked_email_input
       else
-        linked_email_prompt="📧 Enter the email used for ${BRIGHT_BOLD}%s${RESET} (cannot be empty, type 'C' to cancel): ${RESET}"
+        linked_email_prompt="${ELECTRIC_YELLOW}📧 Enter the email used for ${BRIGHT_BOLD}%s${RESET} ${ELECTRIC_YELLOW}(cannot be empty, type '${BRIGHT_BOLD}C${RESET}'${ELECTRIC_YELLOW} to cancel): ${RESET}"
         read -rp "$(printf "$linked_email_prompt" "$logged_in_via")" linked_email_input
       fi
       linked_email=$(trim "$linked_email_input") # From _utils.sh
@@ -95,7 +95,7 @@ add_entry() {
       fi
 
       [[ -n "$linked_email" ]] && break
-      echo -e "${NEON_RED}🚫 Linked email cannot be empty if a service is specified! Please provide a value or type '${AQUA}C' to cancel.${RESET}"
+      echo -e "${NEON_RED}🚫 Linked email cannot be empty if a service is specified! Please provide a value or type '${AQUA}C${RESET}'${NEON_RED} to cancel.${RESET}"
       echo "" # Extra space
     done
 
@@ -109,10 +109,10 @@ add_entry() {
     while true; do
       local email_prompt
       if [[ -n "$DEFAULT_EMAIL" ]]; then
-        email_prompt="📧 Enter your Email for this site (Default: ${BRIGHT_BOLD}%s${RESET}${ELECTRIC_YELLOW}, cannot be empty, or type 'U' to use username, '${BRIGHT_BOLD}X${RESET}${ELECTRIC_YELLOW}' to clear default):${RESET} "
+        email_prompt="${ELECTRIC_YELLOW}📧 Enter your Email for this site (Default: ${BRIGHT_BOLD}%s${RESET}${ELECTRIC_YELLOW}, cannot be empty, or type 'U' to use username, '${BRIGHT_BOLD}X${RESET}${ELECTRIC_YELLOW}' to clear default):${RESET} "
         read -rp "$(printf "$email_prompt" "$DEFAULT_EMAIL") " email_input
       else
-        email_prompt="📧 Enter your Email for this site (cannot be empty, or type 'U' to use username):${RESET} "
+        email_prompt="${ELECTRIC_YELLOW}📧 Enter your Email for this site (cannot be empty, or type 'U' to use username):${RESET} "
         read -rp "$(printf "$email_prompt") " email_input
       fi
       email=$(trim "$email_input") # From _utils.sh
