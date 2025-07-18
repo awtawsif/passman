@@ -11,6 +11,7 @@ set -o pipefail
 # Dependencies:
 # - _colors.sh (for color variables like NEON_RED, LIME_GREEN, ELECTRIC_YELLOW, RESET)
 # - _utils.sh (for pause, trim)
+# - _prompts.sh (for prompt strings)
 # Global variables from passman.sh that are used/set here:
 # - CONFIG_DIR: Path to the configuration directory.
 # - CONFIG_FILE: Path to the configuration file.
@@ -43,7 +44,7 @@ load_config() {
 
   # Check if config file exists
   if [[ -f "$CONFIG_FILE" ]]; then
-    echo -e "${AQUA}Loading configuration from ${BRIGHT_BOLD}${CONFIG_FILE}${RESET}${AQUA}...${RESET}"
+    echo -e "$(printf "$INFO_CONFIG_LOADING" "$CONFIG_FILE")"
     while IFS='=' read -r key value; do
       # Trim whitespace from key and value
       key=$(trim "$key")
@@ -70,9 +71,9 @@ load_config() {
         *) echo -e "${ELECTRIC_YELLOW}Warning: Unknown configuration key '${key}' in ${CONFIG_FILE}.${RESET}" >&2 ;;
       esac
     done < "$CONFIG_FILE"
-    echo -e "${LIME_GREEN}Configuration loaded.${RESET}\n"
+    echo -e "$SUCCESS_CONFIG_LOADED"
   else
-    echo -e "${ELECTRIC_YELLOW}No configuration file found. Using default settings.${RESET}\n"
+    echo -e "$WARNING_NO_CONFIG_FILE"
     # Save default config to file for future runs
     save_config
   fi
@@ -98,7 +99,7 @@ save_config() {
     echo "DEFAULT_EMAIL=\"$DEFAULT_EMAIL\"" # Save new default email
     echo "DEFAULT_SERVICE=\"$DEFAULT_SERVICE\"" # Save new default service
   } > "$CONFIG_FILE"
-  echo -e "${LIME_GREEN}Configuration saved to ${BRIGHT_BOLD}${CONFIG_FILE}${RESET}${LIME_GREEN}.${RESET}"
+  echo -e "$(printf "$SUCCESS_CONFIG_SAVED" "$CONFIG_FILE")"
 }
 
 # Updates the SAVE_LOCATION in the config file.
@@ -108,31 +109,31 @@ update_save_location_in_config() {
   local new_path="$1"
   SAVE_LOCATION="$new_path" # Update the global variable
   save_config # Call save_config to write the updated global to file
-  echo -e "${LIME_GREEN}Default save location updated to: ${BRIGHT_BOLD}$SAVE_LOCATION${RESET}${LIME_GREEN}.${RESET}"
+  echo -e "$(printf "$SUCCESS_DEFAULT_SAVE_LOCATION_UPDATED" "$SAVE_LOCATION")"
 }
 
 
 # Allows the user to manage various application settings.
 manage_settings() {
   clear_screen
-  echo -e "${BRIGHT_BOLD}${VIOLET}--- Manage Settings ---${RESET}"
-  echo -e "${AQUA}Configure default password generation and data file location.${RESET}\n"
+  echo -e "$PROMPT_MANAGE_SETTINGS_TITLE"
+  echo -e "$PROMPT_MANAGE_SETTINGS_HINT"
 
   local setting_choice
   while true; do
-    echo -e "${BRIGHT_BOLD}Current Settings:${RESET}"
-    echo -e "  ${BRIGHT_BOLD}1)${RESET} Default Password Length: ${BRIGHT_BOLD}$DEFAULT_PASSWORD_LENGTH${RESET}"
-    echo -e "  ${BRIGHT_BOLD}2)${RESET} Include Uppercase: ${BRIGHT_BOLD}$DEFAULT_PASSWORD_UPPER${RESET}"
-    echo -e "  ${BRIGHT_BOLD}3)${RESET} Include Numbers: ${BRIGHT_BOLD}$DEFAULT_PASSWORD_NUMBERS${RESET}"
-    echo -e "  ${BRIGHT_BOLD}4)${RESET} Include Symbols: ${BRIGHT_BOLD}$DEFAULT_PASSWORD_SYMBOLS${RESET}"
-    echo -e "  ${BRIGHT_BOLD}5)${RESET} Clipboard Clear Delay (seconds): ${BRIGHT_BOLD}$CLIPBOARD_CLEAR_DELAY${RESET}"
-    echo -e "  ${BRIGHT_BOLD}6)${RESET} Default Data File Location: ${BRIGHT_BOLD}$SAVE_LOCATION${RESET}"
-    echo -e "  ${BRIGHT_BOLD}7)${RESET} Default Search Mode: ${BRIGHT_BOLD}$DEFAULT_SEARCH_MODE${RESET} ('and' or 'or')"
-    echo -e "  ${BRIGHT_BOLD}8)${RESET} Default Email: ${BRIGHT_BOLD}${DEFAULT_EMAIL:-<empty>}${RESET}" # Display <empty> if not set
-    echo -e "  ${BRIGHT_BOLD}9)${RESET} Default Service: ${BRIGHT_BOLD}${DEFAULT_SERVICE:-<empty>}${RESET}" # Display <empty> if not set
-    echo -e "  ${BRIGHT_BOLD}Q)${RESET} Back to Main Menu${RESET}\n"
+    echo -e "$PROMPT_CURRENT_SETTINGS"
+    echo -e "$(printf "$PROMPT_SETTING_PASSWORD_LENGTH" "$DEFAULT_PASSWORD_LENGTH")"
+    echo -e "$(printf "$PROMPT_SETTING_INCLUDE_UPPERCASE" "$DEFAULT_PASSWORD_UPPER")"
+    echo -e "$(printf "$PROMPT_SETTING_INCLUDE_NUMBERS" "$DEFAULT_PASSWORD_NUMBERS")"
+    echo -e "$(printf "$PROMPT_SETTING_INCLUDE_SYMBOLS" "$DEFAULT_PASSWORD_SYMBOLS")"
+    echo -e "$(printf "$PROMPT_SETTING_CLIPBOARD_DELAY" "$CLIPBOARD_CLEAR_DELAY")"
+    echo -e "$(printf "$PROMPT_SETTING_DATA_FILE_LOCATION" "$SAVE_LOCATION")"
+    echo -e "$(printf "$PROMPT_SETTING_SEARCH_MODE" "$DEFAULT_SEARCH_MODE")"
+    echo -e "$(printf "$PROMPT_SETTING_DEFAULT_EMAIL" "${DEFAULT_EMAIL:-<empty>}")" # Display <empty> if not set
+    echo -e "$(printf "$PROMPT_SETTING_DEFAULT_SERVICE" "${DEFAULT_SERVICE:-<empty>}")" # Display <empty> if not set
+    echo -e "$PROMPT_SETTING_BACK_TO_MAIN_MENU"
 
-    read -rp "$(printf "${ELECTRIC_YELLOW}Enter setting number to change, or 'Q' to quit: ${RESET}") " setting_choice_input
+    read -rp "$(printf "${ELECTRIC_YELLOW}${PROMPT_ENTER_SETTING_CHOICE}${RESET}") " setting_choice_input
     setting_choice=$(trim "$setting_choice_input")
     echo "" # Extra space
 
@@ -148,15 +149,15 @@ manage_settings() {
       1) # Default Password Length
         local new_length
         while true; do
-          read -rp "$(printf "${ELECTRIC_YELLOW}Enter new default password length (current: ${BRIGHT_BOLD}%s${RESET}${ELECTRIC_YELLOW}, min 1): ${RESET}" "$DEFAULT_PASSWORD_LENGTH")" new_length_input
+          read -rp "$(printf "${ELECTRIC_YELLOW}${PROMPT_ENTER_NEW_PASSWORD_LENGTH}${RESET}" "$DEFAULT_PASSWORD_LENGTH")" new_length_input
           new_length=$(trim "$new_length_input")
           echo "" # Extra space
           if [[ "$new_length" =~ ^[0-9]+$ ]] && (( new_length >= 1 )); then
             DEFAULT_PASSWORD_LENGTH="$new_length"
-            echo -e "${LIME_GREEN}Default password length updated to ${BRIGHT_BOLD}$DEFAULT_PASSWORD_LENGTH${RESET}.${RESET}"
+            echo -e "$(printf "$SUCCESS_PASSWORD_LENGTH_UPDATED" "$DEFAULT_PASSWORD_LENGTH")"
             break
           else
-            echo -e "${NEON_RED}🚫 Invalid length. Please enter a positive number.${RESET}"
+            echo -e "$ERROR_INVALID_LENGTH_POSITIVE_NUMBER"
             echo "" # Extra space
           fi
         done
@@ -164,16 +165,16 @@ manage_settings() {
       2) # Include Uppercase
         local new_upper
         while true; do
-          read -rp "$(printf "${ELECTRIC_YELLOW}Include uppercase letters? (current: ${BRIGHT_BOLD}%s${RESET}${ELECTRIC_YELLOW}, Y/n): ${RESET}" "$DEFAULT_PASSWORD_UPPER") " new_upper_input
+          read -rp "$(printf "${ELECTRIC_YELLOW}${PROMPT_INCLUDE_UPPERCASE_QUESTION}${RESET}" "$DEFAULT_PASSWORD_UPPER") " new_upper_input
           # Use default if input is empty
           new_upper=$(trim "${new_upper_input:-$DEFAULT_PASSWORD_UPPER}")
           echo "" # Extra space
           if [[ "$new_upper" =~ ^[yYnN]$ ]]; then
             DEFAULT_PASSWORD_UPPER=$(echo "$new_upper" | tr '[:upper:]' '[:lower:]')
-            echo -e "${LIME_GREEN}Include uppercase updated to ${BRIGHT_BOLD}$DEFAULT_PASSWORD_UPPER${RESET}.${RESET}"
+            echo -e "$(printf "$SUCCESS_INCLUDE_UPPERCASE_UPDATED" "$DEFAULT_PASSWORD_UPPER")"
             break
           else
-            echo -e "${NEON_RED}🚫 Invalid input. Please enter 'Y' or 'N'.${RESET}"
+            echo -e "$ERROR_INVALID_YES_NO_INPUT"
             echo "" # Extra space
           fi
         done
@@ -181,15 +182,15 @@ manage_settings() {
       3) # Include Numbers
         local new_numbers
         while true; do
-          read -rp "$(printf "${ELECTRIC_YELLOW}Include numbers? (current: ${BRIGHT_BOLD}%s${RESET}${ELECTRIC_YELLOW}, Y/n): ${RESET}" "$DEFAULT_PASSWORD_NUMBERS") " new_numbers_input
+          read -rp "$(printf "${ELECTRIC_YELLOW}${PROMPT_INCLUDE_NUMBERS_QUESTION}${RESET}" "$DEFAULT_PASSWORD_NUMBERS") " new_numbers_input
           new_numbers=$(trim "${new_numbers_input:-$DEFAULT_PASSWORD_NUMBERS}")
           echo "" # Extra space
           if [[ "$new_numbers" =~ ^[yYnN]$ ]]; then
             DEFAULT_PASSWORD_NUMBERS=$(echo "$new_numbers" | tr '[:upper:]' '[:lower:]')
-            echo -e "${LIME_GREEN}Include numbers updated to ${BRIGHT_BOLD}$DEFAULT_PASSWORD_NUMBERS${RESET}.${RESET}"
+            echo -e "$(printf "$SUCCESS_INCLUDE_NUMBERS_UPDATED" "$DEFAULT_PASSWORD_NUMBERS")"
             break
           else
-            echo -e "${NEON_RED}🚫 Invalid input. Please enter 'Y' or 'N'.${RESET}"
+            echo -e "$ERROR_INVALID_YES_NO_INPUT"
             echo "" # Extra space
           fi
         done
@@ -197,15 +198,15 @@ manage_settings() {
       4) # Include Symbols
         local new_symbols
         while true; do
-          read -rp "$(printf "${ELECTRIC_YELLOW}Include symbols? (current: ${BRIGHT_BOLD}%s${RESET}${ELECTRIC_YELLOW}, Y/n): ${RESET}" "$DEFAULT_PASSWORD_SYMBOLS") " new_symbols_input
+          read -rp "$(printf "${ELECTRIC_YELLOW}${PROMPT_INCLUDE_SYMBOLS_QUESTION}${RESET}" "$DEFAULT_PASSWORD_SYMBOLS") " new_symbols_input
           new_symbols=$(trim "${new_symbols_input:-$DEFAULT_PASSWORD_SYMBOLS}")
           echo "" # Extra space
           if [[ "$new_symbols" =~ ^[yYnN]$ ]]; then
             DEFAULT_PASSWORD_SYMBOLS=$(echo "$new_symbols" | tr '[:upper:]' '[:lower:]')
-            echo -e "${LIME_GREEN}Include symbols updated to ${BRIGHT_BOLD}$DEFAULT_PASSWORD_SYMBOLS${RESET}.${RESET}"
+            echo -e "$(printf "$SUCCESS_INCLUDE_SYMBOLS_UPDATED" "$DEFAULT_PASSWORD_SYMBOLS")"
             break
           else
-            echo -e "${NEON_RED}🚫 Invalid input. Please enter 'Y' or 'N'.${RESET}"
+            echo -e "$ERROR_INVALID_YES_NO_INPUT"
             echo "" # Extra space
           fi
         done
@@ -213,15 +214,15 @@ manage_settings() {
       5) # Clipboard Clear Delay
         local new_delay
         while true; do
-          read -rp "$(printf "${ELECTRIC_YELLOW}Enter new clipboard clear delay in seconds (current: ${BRIGHT_BOLD}%s${RESET}${ELECTRIC_YELLOW}, 0 for no clear): ${RESET}" "$CLIPBOARD_CLEAR_DELAY")" new_delay_input
+          read -rp "$(printf "${ELECTRIC_YELLOW}${PROMPT_ENTER_NEW_CLIPBOARD_DELAY}${RESET}" "$CLIPBOARD_CLEAR_DELAY")" new_delay_input
           new_delay=$(trim "$new_delay_input")
           echo "" # Extra space
           if [[ "$new_delay" =~ ^[0-9]+$ ]] && (( new_delay >= 0 )); then
             CLIPBOARD_CLEAR_DELAY="$new_delay"
-            echo -e "${LIME_GREEN}Clipboard clear delay updated to ${BRIGHT_BOLD}$CLIPBOARD_CLEAR_DELAY${RESET} seconds.${RESET}"
+            echo -e "$(printf "$SUCCESS_CLIPBOARD_DELAY_UPDATED" "$CLIPBOARD_CLEAR_DELAY")"
             break
           else
-            echo -e "${NEON_RED}🚫 Invalid delay. Please enter a non-negative number.${RESET}"
+            echo -e "$ERROR_INVALID_DELAY_NON_NEGATIVE"
             echo "" # Extra space
           fi
         done
@@ -229,17 +230,17 @@ manage_settings() {
       6) # Default Data File Location
         local new_save_location
         while true; do
-          read -rp "$(printf "${ELECTRIC_YELLOW}Enter new default data file directory (current: ${BRIGHT_BOLD}%s${RESET}${ELECTRIC_YELLOW}): ${RESET}" "$SAVE_LOCATION")" new_save_location_input
+          read -rp "$(printf "${ELECTRIC_YELLOW}${PROMPT_ENTER_NEW_SAVE_LOCATION}${RESET}" "$SAVE_LOCATION")" new_save_location_input
           new_save_location=$(trim "$new_save_location_input")
           echo "" # Extra space
           if [[ -d "$new_save_location" ]]; then
             SAVE_LOCATION="$new_save_location"
             ENC_JSON_FILE="${SAVE_LOCATION}/${DEFAULT_ENC_FILENAME}" # Update global ENC_JSON_FILE immediately
-            echo -e "${LIME_GREEN}Default data file location updated to ${BRIGHT_BOLD}$SAVE_LOCATION${RESET}.${RESET}"
-            echo -e "${ELECTRIC_YELLOW}Encrypted file will now be saved/loaded from: ${BRIGHT_BOLD}$ENC_JSON_FILE${RESET}${ELECTRIC_YELLOW}.${RESET}"
+            echo -e "$(printf "$SUCCESS_DATA_FILE_LOCATION_UPDATED" "$SAVE_LOCATION")"
+            echo -e "$(printf "$INFO_ENCRYPTED_FILE_LOCATION" "$ENC_JSON_FILE")"
             break
           else
-            echo -e "${NEON_RED}🚫 Directory not found. Please enter a valid directory path.${RESET}"
+            echo -e "$ERROR_DIRECTORY_NOT_FOUND"
             echo "" # Extra space
           fi
         done
@@ -247,16 +248,16 @@ manage_settings() {
       7) # Default Search Mode
         local new_search_mode
         while true; do
-          read -rp "$(printf "${ELECTRIC_YELLOW}Enter new default search mode (current: ${BRIGHT_BOLD}%s${RESET}${ELECTRIC_YELLOW}, 'and' or 'or'): ${RESET}" "$DEFAULT_SEARCH_MODE") " new_search_mode_input
+          read -rp "$(printf "${ELECTRIC_YELLOW}${PROMPT_ENTER_NEW_SEARCH_MODE}${RESET}" "$DEFAULT_SEARCH_MODE") " new_search_mode_input
           new_search_mode=$(trim "$new_search_mode_input")
           echo "" # Extra space
           local lower_mode=$(echo "$new_search_mode" | tr '[:upper:]' '[:lower:]')
           if [[ "$lower_mode" == "and" || "$lower_mode" == "or" ]]; then
             DEFAULT_SEARCH_MODE="$lower_mode"
-            echo -e "${LIME_GREEN}Default search mode updated to ${BRIGHT_BOLD}$DEFAULT_SEARCH_MODE${RESET}.${RESET}"
+            echo -e "$(printf "$SUCCESS_SEARCH_MODE_UPDATED" "$DEFAULT_SEARCH_MODE")"
             break
           else
-            echo -e "${NEON_RED}🚫 Invalid input. Please enter 'and' or 'or'.${RESET}"
+            echo -e "$ERROR_INVALID_SEARCH_MODE"
             echo "" # Extra space
           fi
         done
@@ -264,39 +265,39 @@ manage_settings() {
       8) # Default Email
         local new_default_email
         while true; do
-          read -rp "$(printf "${ELECTRIC_YELLOW}Enter new default email (current: ${BRIGHT_BOLD}%s${RESET}${ELECTRIC_YELLOW}, leave blank to clear, or type '${BRIGHT_BOLD}C${RESET}${ELECTRIC_YELLOW}' to cancel): ${RESET}" "${DEFAULT_EMAIL:-<empty>}") " new_default_email_input
+          read -rp "$(printf "${ELECTRIC_YELLOW}${PROMPT_ENTER_NEW_DEFAULT_EMAIL}${RESET}" "${DEFAULT_EMAIL:-<empty>}") " new_default_email_input
           new_default_email=$(trim "$new_default_email_input")
           echo "" # Extra space
           local lower_input=$(echo "$new_default_email" | tr '[:upper:]' '[:lower:]')
           if [[ "$lower_input" == "c" ]]; then
-            echo -e "${AQUA}Default email configuration cancelled.${RESET}"
+            echo -e "$INFO_DEFAULT_EMAIL_CANCELLED"
             break 2 # Exit both loops
           fi
           DEFAULT_EMAIL="$new_default_email"
-          echo -e "${LIME_GREEN}Default email updated to ${BRIGHT_BOLD}${DEFAULT_EMAIL:-<empty>}${RESET}.${RESET}"
+          echo -e "$(printf "$SUCCESS_DEFAULT_EMAIL_UPDATED" "${DEFAULT_EMAIL:-<empty>}")"
           break
         done
         ;;
       9) # Default Service
         local new_default_service
         while true; do
-          read -rp "$(printf "${ELECTRIC_YELLOW}Enter new default service (current: ${BRIGHT_BOLD}%s${RESET}${ELECTRIC_YELLOW}, leave blank to clear, or type '${BRIGHT_BOLD}C${RESET}${ELECTRIC_YELLOW}' to cancel): ${RESET}" "${DEFAULT_SERVICE:-<empty>}") " new_default_service_input
+          read -rp "$(printf "${ELECTRIC_YELLOW}${PROMPT_ENTER_NEW_DEFAULT_SERVICE}${RESET}" "${DEFAULT_SERVICE:-<empty>}") " new_default_service_input
           new_default_service=$(trim "$new_default_service_input")
           echo "" # Extra space
           local lower_input=$(echo "$new_default_service" | tr '[:upper:]' '[:lower:]')
           if [[ "$lower_input" == "c" ]]; then
-            echo -e "${AQUA}Default service configuration cancelled.${RESET}"
+            echo -e "$INFO_DEFAULT_SERVICE_CANCELLED"
             break 2 # Exit both loops
           fi
           DEFAULT_SERVICE="$new_default_service"
-          echo -e "${LIME_GREEN}Default service updated to ${BRIGHT_BOLD}${DEFAULT_SERVICE:-<empty>}${RESET}.${RESET}"
+          echo -e "$(printf "$SUCCESS_DEFAULT_SERVICE_UPDATED" "${DEFAULT_SERVICE:-<empty>}")"
           break
         done
         ;;
       *)
-        echo -e "${NEON_RED}❌ Invalid option. Please enter a number from 1-9 or 'Q'.${RESET}"
+        echo -e "$ERROR_INVALID_OPTION_SETTINGS"
         echo "" # Extra space
-        ;;
+        ;;\
     esac
     save_config # Save changes after each setting update
     pause # From _utils.sh
