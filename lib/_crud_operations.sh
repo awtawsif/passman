@@ -14,7 +14,7 @@ set -o pipefail
 # - _data_storage.sh (for load_entries, save_entries)
 # - _password_generator.sh (for generate_password)
 # Uses global variables: DEFAULT_PASSWORD_LENGTH, DEFAULT_PASSWORD_UPPER,
-# DEFAULT_PASSWORD_NUMBERS, DEFAULT_PASSWORD_SYMBOLS from _config.sh.
+# DEFAULT_PASSWORD_NUMBERS, DEFAULT_PASSWORD_SYMBOLS, DEFAULT_EMAIL, DEFAULT_SERVICE from _config.sh.
 
 # Prompts the user for new credential details and adds them to the JSON file.
 add_entry() {
@@ -39,31 +39,61 @@ add_entry() {
     echo "" # Extra space
   done
 
-  local logged_in_via_input
-  while true; do
-    read -rp "$(printf "${ELECTRIC_YELLOW}🔗 Did you log into this site using another service (e.g., Google, Facebook)? (Leave blank if not): ${RESET}") " logged_in_via_input
-    logged_in_via=$(trim "$logged_in_via_input") # From _utils.sh
-    echo "" # Extra space
-    if [[ "$(echo "$logged_in_via" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
-      echo -e "${AQUA}Operation cancelled. Returning to main menu.${RESET}"
-      pause # From _utils.sh
-      return
-    fi
-    break # User can leave this empty
-  done
+  local logged_in_via_input_raw
+  # Offer DEFAULT_SERVICE if it's set
+  if [[ -n "$DEFAULT_SERVICE" ]]; then
+    read -rp "$(printf "${ELECTRIC_YELLOW}🔗 Did you log into this site using another service (e.g., Google, Facebook)? (Default: ${BRIGHT_BOLD}%s${RESET}${ELECTRIC_YELLOW}, Leave blank if not, '${BRIGHT_BOLD}X${RESET}${ELECTRIC_YELLOW}' to clear default): ${RESET}" "$DEFAULT_SERVICE") " logged_in_via_input_raw
+  else
+    read -rp "$(printf "${ELECTRIC_YELLOW}🔗 Did you log into this site using another service (e.g., Google, Facebook)? (Leave blank if not): ${RESET}") " logged_in_via_input_raw
+  fi
+  logged_in_via=$(trim "$logged_in_via_input_raw") # From _utils.sh
+  echo "" # Extra space
+
+  # Handle 'X' to clear default service
+  if [[ "$(echo "$logged_in_via" | tr '[:upper:]' '[:lower:]')" == "x" ]]; then
+    logged_in_via=""
+    echo -e "${AQUA}Default service cleared for this entry.${RESET}"
+  elif [[ -z "$logged_in_via" && -n "$DEFAULT_SERVICE" ]]; then
+    logged_in_via="$DEFAULT_SERVICE" # Use default if user pressed Enter
+    echo -e "${AQUA}Using default service: ${BRIGHT_BOLD}$logged_in_via${RESET}.${RESET}"
+  fi
+
+  if [[ "$(echo "$logged_in_via" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
+    echo -e "${AQUA}Operation cancelled. Returning to main menu.${RESET}"
+    pause # From _utils.sh
+    return
+  fi
 
 
   if [[ -n "$logged_in_via" ]]; then
-    # Prompt for linked email (mandatory)
+    # Prompt for linked email (mandatory if logged_in_via is set, but can be 'X' to remove default)
     while true; do
-      read -rp "$(printf "${ELECTRIC_YELLOW}📧 Enter the email used for ${BRIGHT_BOLD}%s${RESET} (cannot be empty, type 'C' to cancel): ${RESET}" "$logged_in_via")" linked_email_input
+      local linked_email_prompt
+      if [[ -n "$DEFAULT_EMAIL" ]]; then
+        linked_email_prompt="📧 Enter the email used for ${BRIGHT_BOLD}%s${RESET} (Default: ${BRIGHT_BOLD}%s${RESET}${ELECTRIC_YELLOW}, cannot be empty, '${BRIGHT_BOLD}X${RESET}${ELECTRIC_YELLOW}' to clear default, type 'C' to cancel): ${RESET}"
+        read -rp "$(printf "$linked_email_prompt" "$logged_in_via" "$DEFAULT_EMAIL")" linked_email_input
+      else
+        linked_email_prompt="📧 Enter the email used for ${BRIGHT_BOLD}%s${RESET} (cannot be empty, type 'C' to cancel): ${RESET}"
+        read -rp "$(printf "$linked_email_prompt" "$logged_in_via")" linked_email_input
+      fi
       linked_email=$(trim "$linked_email_input") # From _utils.sh
       echo "" # Extra space
+
       if [[ "$(echo "$linked_email" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
         echo -e "${AQUA}Operation cancelled. Returning to main menu.${RESET}"
         pause # From _utils.sh
         return
       fi
+
+      # Handle 'X' to clear default email
+      if [[ "$(echo "$linked_email" | tr '[:upper:]' '[:lower:]')" == "x" ]]; then
+        linked_email=""
+        echo -e "${AQUA}Default email cleared for this entry.${RESET}"
+      elif [[ -z "$linked_email" && -n "$DEFAULT_EMAIL" ]]; then
+        linked_email="$DEFAULT_EMAIL" # Use default if user pressed Enter
+        echo -e "${AQUA}Using default email: ${BRIGHT_BOLD}$linked_email${RESET}.${RESET}"
+      fi
+
       [[ -n "$linked_email" ]] && break
       echo -e "${NEON_RED}🚫 Linked email cannot be empty if a service is specified! Please provide a value or type '${AQUA}C' to cancel.${RESET}"
       echo "" # Extra space
@@ -77,14 +107,32 @@ add_entry() {
     email=""        # Ensure email is empty if logging in via another service
   else
     while true; do
-      read -rp "$(printf "${ELECTRIC_YELLOW}📧 Enter your Email for this site (cannot be empty, or type 'U' to use username):${RESET} ") " email_input
+      local email_prompt
+      if [[ -n "$DEFAULT_EMAIL" ]]; then
+        email_prompt="📧 Enter your Email for this site (Default: ${BRIGHT_BOLD}%s${RESET}${ELECTRIC_YELLOW}, cannot be empty, or type 'U' to use username, '${BRIGHT_BOLD}X${RESET}${ELECTRIC_YELLOW}' to clear default):${RESET} "
+        read -rp "$(printf "$email_prompt" "$DEFAULT_EMAIL") " email_input
+      else
+        email_prompt="📧 Enter your Email for this site (cannot be empty, or type 'U' to use username):${RESET} "
+        read -rp "$(printf "$email_prompt") " email_input
+      fi
       email=$(trim "$email_input") # From _utils.sh
       echo "" # Extra space
+
       if [[ "$(echo "$email" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
         echo -e "${AQUA}Operation cancelled. Returning to main menu.${RESET}"
         pause # From _utils.sh
         return
       fi
+
+      # Handle 'X' to clear default email
+      if [[ "$(echo "$email" | tr '[:upper:]' '[:lower:]')" == "x" ]]; then
+        email=""
+        echo -e "${AQUA}Default email cleared for this entry.${RESET}"
+      elif [[ -z "$email" && -n "$DEFAULT_EMAIL" ]]; then
+        email="$DEFAULT_EMAIL" # Use default if user pressed Enter
+        echo -e "${AQUA}Using default email: ${BRIGHT_BOLD}$email${RESET}.${RESET}"
+      fi
+
       if [[ "$(echo "$email" | tr '[:upper:]' '[:lower:]')" == "u" ]]; then
         # User wants to use username instead of email (mandatory)
         while true; do
@@ -444,7 +492,13 @@ edit_entry() {
   done
 
   local new_logged_in_via_temp
-  if ! get_optional_input_with_remove "🔗 Update Logged in via" "$current_logged_in_via" new_logged_in_via_temp; then
+  # Use DEFAULT_SERVICE as the default value for the prompt if it's set and current_logged_in_via is empty
+  local prompt_logged_in_via_default="$current_logged_in_via"
+  if [[ -z "$current_logged_in_via" && -n "$DEFAULT_SERVICE" ]]; then
+    prompt_logged_in_via_default="$DEFAULT_SERVICE"
+  fi
+
+  if ! get_optional_input_with_remove "🔗 Update Logged in via" "$prompt_logged_in_via_default" new_logged_in_via_temp; then
     echo -e "${CYBER_BLUE}Operation cancelled. Returning to main menu.${RESET}" # Added message
     pause # Added pause
     clear_screen
@@ -461,7 +515,12 @@ edit_entry() {
   if [[ -n "$new_logged_in_via_temp" ]]; then
     # If a service is specified, linked email or username is now optionally mandatory (X/BLANK/C allowed)
     while true; do
-      if ! get_optional_input_with_remove "📧 Update Linked email for ${new_logged_in_via_temp}" "$current_linked_email" new_linked_email; then
+      local prompt_linked_email_default="$current_linked_email"
+      if [[ -z "$current_linked_email" && -n "$DEFAULT_EMAIL" ]]; then
+        prompt_linked_email_default="$DEFAULT_EMAIL"
+      fi
+
+      if ! get_optional_input_with_remove "📧 Update Linked email for ${new_logged_in_via_temp}" "$prompt_linked_email_default" new_linked_email; then
         echo -e "${CYBER_BLUE}Operation cancelled. Returning to main menu.${RESET}" # Added message
         pause # Added pause
         clear_screen
@@ -489,7 +548,12 @@ edit_entry() {
   if [[ -z "$actual_logged_in_via" ]]; then
     # If no service, direct email or username is used and one is mandatory
     while true; do
-      if ! get_optional_input_with_remove "📧 Update Email" "$current_email" new_email; then
+      local prompt_email_default="$current_email"
+      if [[ -z "$current_email" && -n "$DEFAULT_EMAIL" ]]; then
+        prompt_email_default="$DEFAULT_EMAIL"
+      fi
+
+      if ! get_optional_input_with_remove "📧 Update Email" "$prompt_email_default" new_email; then
         echo -e "${CYBER_BLUE}Operation cancelled. Returning to main menu.${RESET}" # Added message
         pause # Added pause
         clear_screen

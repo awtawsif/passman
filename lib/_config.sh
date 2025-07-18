@@ -20,6 +20,8 @@ set -o pipefail
 # - DEFAULT_PASSWORD_LENGTH, DEFAULT_PASSWORD_UPPER, DEFAULT_PASSWORD_NUMBERS, DEFAULT_PASSWORD_SYMBOLS: Password generation settings.
 # - CLIPBOARD_CLEAR_DELAY: Delay for clipboard clear.
 # - DEFAULT_SEARCH_MODE: Default search mode ("and" or "or").
+# - DEFAULT_EMAIL: Default email address to pre-fill in add/edit entry.
+# - DEFAULT_SERVICE: Default service name to pre-fill in add/edit entry (e.g., 'Google').
 
 # Loads configuration from the config file or sets defaults.
 load_config() {
@@ -28,6 +30,16 @@ load_config() {
 
   # Set default save location if not already set (this happens on first run)
   : "${SAVE_LOCATION:=${HOME}/Documents}" # Default to user's Documents folder
+  # Set other defaults if not already set
+  : "${DEFAULT_PASSWORD_LENGTH:=12}"
+  : "${DEFAULT_PASSWORD_UPPER:=y}"
+  : "${DEFAULT_PASSWORD_NUMBERS:=y}"
+  : "${DEFAULT_PASSWORD_SYMBOLS:=y}"
+  : "${CLIPBOARD_CLEAR_DELAY:=10}"
+  : "${DEFAULT_SEARCH_MODE:=and}"
+  : "${DEFAULT_EMAIL:=}" # Default to empty
+  : "${DEFAULT_SERVICE:=}" # Default to empty
+
 
   # Check if config file exists
   if [[ -f "$CONFIG_FILE" ]]; then
@@ -53,6 +65,8 @@ load_config() {
         DEFAULT_PASSWORD_SYMBOLS) DEFAULT_PASSWORD_SYMBOLS="$value" ;;
         CLIPBOARD_CLEAR_DELAY) CLIPBOARD_CLEAR_DELAY="$value" ;;
         DEFAULT_SEARCH_MODE) DEFAULT_SEARCH_MODE="$value" ;;
+        DEFAULT_EMAIL) DEFAULT_EMAIL="$value" ;; # Load new default email
+        DEFAULT_SERVICE) DEFAULT_SERVICE="$value" ;; # Load new default service
         *) echo -e "${ELECTRIC_YELLOW}Warning: Unknown configuration key '${key}' in ${CONFIG_FILE}.${RESET}" >&2 ;;
       esac
     done < "$CONFIG_FILE"
@@ -74,13 +88,15 @@ save_config() {
     echo "# Passman Configuration File"
     echo "# Last updated: $(date "+%Y-%m-%d %H:%M:%S")"
     echo ""
-    echo "SAVE_LOCATION=$SAVE_LOCATION"
+    echo "SAVE_LOCATION=\"$SAVE_LOCATION\"" # Quoted to handle paths with spaces
     echo "DEFAULT_PASSWORD_LENGTH=$DEFAULT_PASSWORD_LENGTH"
     echo "DEFAULT_PASSWORD_UPPER=$DEFAULT_PASSWORD_UPPER"
     echo "DEFAULT_PASSWORD_NUMBERS=$DEFAULT_PASSWORD_NUMBERS"
     echo "DEFAULT_PASSWORD_SYMBOLS=$DEFAULT_PASSWORD_SYMBOLS"
     echo "CLIPBOARD_CLEAR_DELAY=$CLIPBOARD_CLEAR_DELAY"
-    echo "DEFAULT_SEARCH_MODE=$DEFAULT_SEARCH_MODE"
+    echo "DEFAULT_SEARCH_MODE=\"$DEFAULT_SEARCH_MODE\"" # Quoted
+    echo "DEFAULT_EMAIL=\"$DEFAULT_EMAIL\"" # Save new default email
+    echo "DEFAULT_SERVICE=\"$DEFAULT_SERVICE\"" # Save new default service
   } > "$CONFIG_FILE"
   echo -e "${LIME_GREEN}Configuration saved to ${BRIGHT_BOLD}${CONFIG_FILE}${RESET}${LIME_GREEN}.${RESET}"
 }
@@ -112,6 +128,8 @@ manage_settings() {
     echo -e "  ${BRIGHT_BOLD}5)${RESET} Clipboard Clear Delay (seconds): ${BRIGHT_BOLD}$CLIPBOARD_CLEAR_DELAY${RESET}"
     echo -e "  ${BRIGHT_BOLD}6)${RESET} Default Data File Location: ${BRIGHT_BOLD}$SAVE_LOCATION${RESET}"
     echo -e "  ${BRIGHT_BOLD}7)${RESET} Default Search Mode: ${BRIGHT_BOLD}$DEFAULT_SEARCH_MODE${RESET} ('and' or 'or')"
+    echo -e "  ${BRIGHT_BOLD}8)${RESET} Default Email: ${BRIGHT_BOLD}${DEFAULT_EMAIL:-<empty>}${RESET}" # Display <empty> if not set
+    echo -e "  ${BRIGHT_BOLD}9)${RESET} Default Service: ${BRIGHT_BOLD}${DEFAULT_SERVICE:-<empty>}${RESET}" # Display <empty> if not set
     echo -e "  ${BRIGHT_BOLD}Q)${RESET} Back to Main Menu${RESET}\n"
 
     read -rp "$(printf "${ELECTRIC_YELLOW}Enter setting number to change, or 'Q' to quit: ${RESET}") " setting_choice_input
@@ -243,8 +261,40 @@ manage_settings() {
           fi
         done
         ;;
+      8) # Default Email
+        local new_default_email
+        while true; do
+          read -rp "$(printf "${ELECTRIC_YELLOW}Enter new default email (current: ${BRIGHT_BOLD}%s${RESET}${ELECTRIC_YELLOW}, leave blank to clear, or type '${BRIGHT_BOLD}C${RESET}${ELECTRIC_YELLOW}' to cancel): ${RESET}" "${DEFAULT_EMAIL:-<empty>}") " new_default_email_input
+          new_default_email=$(trim "$new_default_email_input")
+          echo "" # Extra space
+          local lower_input=$(echo "$new_default_email" | tr '[:upper:]' '[:lower:]')
+          if [[ "$lower_input" == "c" ]]; then
+            echo -e "${AQUA}Default email configuration cancelled.${RESET}"
+            break 2 # Exit both loops
+          fi
+          DEFAULT_EMAIL="$new_default_email"
+          echo -e "${LIME_GREEN}Default email updated to ${BRIGHT_BOLD}${DEFAULT_EMAIL:-<empty>}${RESET}.${RESET}"
+          break
+        done
+        ;;
+      9) # Default Service
+        local new_default_service
+        while true; do
+          read -rp "$(printf "${ELECTRIC_YELLOW}Enter new default service (current: ${BRIGHT_BOLD}%s${RESET}${ELECTRIC_YELLOW}, leave blank to clear, or type '${BRIGHT_BOLD}C${RESET}${ELECTRIC_YELLOW}' to cancel): ${RESET}" "${DEFAULT_SERVICE:-<empty>}") " new_default_service_input
+          new_default_service=$(trim "$new_default_service_input")
+          echo "" # Extra space
+          local lower_input=$(echo "$new_default_service" | tr '[:upper:]' '[:lower:]')
+          if [[ "$lower_input" == "c" ]]; then
+            echo -e "${AQUA}Default service configuration cancelled.${RESET}"
+            break 2 # Exit both loops
+          fi
+          DEFAULT_SERVICE="$new_default_service"
+          echo -e "${LIME_GREEN}Default service updated to ${BRIGHT_BOLD}${DEFAULT_SERVICE:-<empty>}${RESET}.${RESET}"
+          break
+        done
+        ;;
       *)
-        echo -e "${NEON_RED}❌ Invalid option. Please enter a number from 1-7 or 'Q'.${RESET}"
+        echo -e "${NEON_RED}❌ Invalid option. Please enter a number from 1-9 or 'Q'.${RESET}"
         echo "" # Extra space
         ;;
     esac

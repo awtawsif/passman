@@ -48,6 +48,8 @@ DEFAULT_PASSWORD_NUMBERS="y"
 DEFAULT_PASSWORD_SYMBOLS="y"
 CLIPBOARD_CLEAR_DELAY=10 # seconds
 DEFAULT_SEARCH_MODE="and" # "and" or "or"
+DEFAULT_EMAIL="" # New: Default email address for new entries
+DEFAULT_SERVICE="" # New: Default service name for new entries (e.g., 'Google')
 
 # Stores the master password during the session (critical for crypto functions).
 MASTER_PASSWORD=""
