@@ -10,6 +10,7 @@ CYBER_BLUE='\033[0;34m'   # General information, hints, subtle guidance
 VIOLET='\033[1;35m'      # Distinct section headers, main menu titles
 AQUA='\033[1;36m'        # Stronger emphasis, decorative lines, special features
 DIM_GREY='\033[0;90m'    # Less important information, subtle separators, background text
+TEXT_CYAN='\033[0;36m'       # Subtle text, default values, secondary info
 
 # === TEXT ATTRIBUTES ===
 BRIGHT_BOLD='\033[1m\033[1;97m'           # Standard bold text (can be combined with colors)

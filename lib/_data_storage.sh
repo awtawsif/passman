@@ -13,11 +13,15 @@ set -o pipefail
 # - _crypto.sh (for encrypt_data, decrypt_data)
 # - _utils.sh (for pause, clear_screen, trim, get_master_password)
 # - _config.sh (for update_save_location_in_config)
+# - _prompts.sh (for user-facing prompts)
 # Global variables from passman.sh that are used here:
 # - CREDENTIALS_DATA: The in-memory decrypted plaintext JSON data.
 # - ENC_JSON_FILE: Path to the securely encrypted file (read-only here, updated in passman.sh).
 # - MASTER_PASSWORD: The master password for encryption/decryption (read-only here).
 # - IS_AUTHENTICATED: Flag to indicate if the session is authenticated.
+
+# Source prompt definitions
+source "$(dirname "$0")/lib/_prompts.sh"
 
 # Loads plaintext JSON entries from CREDENTIALS_DATA.
 # Returns:
@@ -114,20 +118,20 @@ write_encrypted_file() {
 #   0 on success, 1 on cancellation or failure.
 load_external_credentials() {
   clear_screen
-  echo -e "${BRIGHT_BOLD}${VIOLET}--- Load External Credentials File ---${RESET}"
-  echo -e "${AQUA}💡 Enter the full path to the encrypted file you wish to load.${RESET}"
-  echo -e "${AQUA}Type '${BRIGHT_BOLD}C${RESET}${AQUA}' to cancel.${RESET}\n"
+  echo -e "$PROMPT_LOAD_EXTERNAL_TITLE"
+  echo -e "$PROMPT_LOAD_EXTERNAL_HINT"
+  echo -e "$PROMPT_LOAD_EXTERNAL_CANCEL_HINT"
 
   local external_file_path
   while true; do
-    read -rp "$(printf "${ELECTRIC_YELLOW}📁 Enter path to encrypted file: ${RESET}") " external_file_path_input
+    read -rp "$(printf "$PROMPT_ENTER_EXTERNAL_FILE_PATH")" external_file_path_input
     external_file_path=$(trim "$external_file_path_input")
     echo "" # Extra space
 
     local lower_input
     lower_input=$(echo "$external_file_path" | tr '[:upper:]' '[:lower:]')
     if [[ "$lower_input" == "c" ]]; then
-      echo -e "${AQUA}Operation cancelled. Returning to main menu.${RESET}"
+      echo -e "$PROMPT_OPERATION_CANCELLED_RETURN_MENU"
       pause
       return 1 # Indicate cancellation
     fi
@@ -135,49 +139,49 @@ load_external_credentials() {
     if [[ -f "$external_file_path" ]]; then
       break
     else
-      echo -e "${NEON_RED}❌ File not found at '${BRIGHT_BOLD}$external_file_path${RESET}${NEON_RED}'. Please enter a valid path or type '${AQUA}C${NEON_RED}' to cancel.${RESET}"
+      printf "${ERROR_FILE_NOT_FOUND}\n" "$external_file_path"
       echo "" # Extra space
     fi
   done
 
   local external_file_master_pass
   # Prompt for the master password specific to the external file
-  get_master_password "🔑 Enter master password for '${external_file_path}': " external_file_master_pass "false"
+  get_master_password "$(printf "$PROMPT_ENTER_EXTERNAL_FILE_MASTER_PASS" "$external_file_path")" external_file_master_pass "false"
 
   if [[ -z "$external_file_master_pass" ]]; then
-    echo -e "${NEON_RED}🚫 Master password not provided. Aborting load.${RESET}"
+    echo -e "$ERROR_EXTERNAL_MASTER_PASSWORD_NOT_PROVIDED"
     pause
     return 1
   fi
 
-  echo -e "${AQUA}Attempting to decrypt and load credentials from ${BRIGHT_BOLD}${external_file_path}${RESET}${AQUA}...${RESET}"
+  printf "${INFO_ATTEMPTING_DECRYPT_EXTERNAL}\n" "$external_file_path"
   if read_encrypted_file "$external_file_path" "$external_file_master_pass"; then
-    echo -e "${LIME_GREEN}✅ Credentials from ${BRIGHT_BOLD}${external_file_path}${RESET}${LIME_GREEN} loaded successfully!${RESET}"
+    printf "${SUCCESS_EXTERNAL_FILE_LOADED}\n" "$external_file_path"
 
     local make_permanent
     while true; do
-      read -rp "$(printf "${ELECTRIC_YELLOW}Do you want to make this the ${BRIGHT_BOLD}default${RESET}${ELECTRIC_YELLOW} credentials file for future sessions? (${BRIGHT_BOLD}y/N${RESET}${ELECTRIC_YELLOW}):${RESET}") " make_permanent_input
+      read -rp "$(printf "$PROMPT_MAKE_EXTERNAL_FILE_DEFAULT")" make_permanent_input
       make_permanent=$(trim "${make_permanent_input:-n}") # Default to 'n' (temporary)
       echo "" # Extra space
       local lower_input=$(echo "$make_permanent" | tr '[:upper:]' '[:lower:]')
       if [[ "$lower_input" == "c" ]]; then
-        echo -e "${AQUA}Operation cancelled. File loaded temporarily.${RESET}"
+        echo -e "$INFO_EXTERNAL_FILE_LOADED_TEMPORARILY"
         # Still return 0 as file was loaded, just not permanently set
         return 0
       fi
       if [[ "$make_permanent" =~ ^[yYnN]$ ]]; then
         break
       fi
-      echo -e "${NEON_RED}🚫 Invalid input. Please enter '${BRIGHT_BOLD}Y${RESET}${NEON_RED}' for Yes, '${BRIGHT_BOLD}N${RESET}${NEON_RED}' for No, or '${AQUA}C${NEON_RED}' to cancel.${RESET}"
+      echo -e "$ERROR_INVALID_YES_NO_INPUT_EXTERNAL"
       echo "" # Extra space
     done
 
     if [[ "$make_permanent" =~ ^[yY]$ ]]; then
       # Call function from _config.sh to update the save location in the config file
       update_save_location_in_config "$(dirname "$external_file_path")"
-      echo -e "${LIME_GREEN}This file is now set as your default credentials file.${RESET}"
+      echo -e "$SUCCESS_EXTERNAL_FILE_SET_DEFAULT"
     else
-      echo -e "${AQUA}File loaded temporarily for this session.${RESET}"
+      echo -e "$INFO_EXTERNAL_FILE_LOADED_TEMPORARILY"
     fi
 
     # Update global variables in passman.sh's scope
@@ -190,7 +194,7 @@ load_external_credentials() {
     pause
     return 0
   else
-    echo -e "${NEON_RED}❌ Failed to load external credentials. Please check the password and file integrity.${RESET}"
+    echo -e "$ERROR_FAILED_LOAD_EXTERNAL_CREDENTIALS"
     pause
     return 1
   fi

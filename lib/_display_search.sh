@@ -12,24 +12,25 @@ set -o pipefail
 # - _colors.sh (for color variables like NEON_RED, LIME_GREEN, ELECTRIC_YELLOW, AQUA, CYBER_BLUE, BRIGHT_BOLD, RESET)
 # - _utils.sh (for clear_screen, pause, trim, copy_to_clipboard)
 # - _data_storage.sh (for load_entries)
+# - _prompts.sh (for prompt strings)
 # Uses global variables: CLIPBOARD_CLEAR_DELAY, DEFAULT_SEARCH_MODE from _config.sh.
 
 # Searches for entries based on user-provided filters.
 search_entries() {
   clear_screen
-  echo -e "${BRIGHT_BOLD}${VIOLET}--- Search Credentials ---${RESET}"
-  echo -e "${AQUA}🔎 Select which fields to filter by. You can pick multiple, separated by commas (e.g. 1,3,5).${RESET}\n"
+  echo -e "$PROMPT_SEARCH_CREDENTIALS_TITLE"
+  echo -e "$PROMPT_SEARCH_FIELDS_HINT"
 
   # List of filterable fields
   local field_names=("Website" "Email" "Username" "Logged in via" "Linked email" "Recovery email")
   local field_vars=("f_website" "f_email" "f_username" "f_logged_in_via" "f_linked_email" "f_recovery_email")
   local field_prompts=(
-    "🌐 Website contains"
-    "📧 Email contains"
-    "👤 Username contains"
-    "🔗 Logged in via contains"
-    "📧 Linked email contains"
-    "🚨 Recovery email contains"
+    "$PROMPT_SEARCH_WEBSITE_CONTAINS"
+    "$PROMPT_SEARCH_EMAIL_CONTAINS"
+    "$PROMPT_SEARCH_USERNAME_CONTAINS"
+    "$PROMPT_SEARCH_LOGGED_IN_VIA_CONTAINS"
+    "$PROMPT_SEARCH_LINKED_EMAIL_CONTAINS"
+    "$PROMPT_SEARCH_RECOVERY_EMAIL_CONTAINS"
   )
 
   # Show menu
@@ -38,7 +39,7 @@ search_entries() {
   done
   echo ""
 
-  read -rp "$(printf "${ELECTRIC_YELLOW}Enter field numbers to filter by (comma-separated), or press Enter to show all:${RESET} ")" field_choices
+  read -rp "$(printf "${ELECTRIC_YELLOW}${PROMPT_SEARCH_ENTER_FIELD_NUMBERS}${RESET} ") " field_choices
   field_choices=$(trim "$field_choices")
 
   # Initialize all filters as empty
@@ -64,7 +65,7 @@ search_entries() {
     :
   fi
 
-  echo -e "${AQUA}Searching for matching credentials...${RESET}\n"
+  echo -e "$PROMPT_SEARCHING_MESSAGE"
 
   local entries_json
   entries_json=$(load_entries)
@@ -98,10 +99,10 @@ search_entries() {
   # Ask user for filter mode (AND/OR), default to configured option
   local filter_mode="$DEFAULT_SEARCH_MODE" # Use global default
   if [[ ${#conditions[@]} -gt 1 ]]; then
-    echo -e "${ELECTRIC_YELLOW}How should filters be combined? (Current default: ${BRIGHT_BOLD}${DEFAULT_SEARCH_MODE^^}${RESET}${ELECTRIC_YELLOW})${RESET}" # Show default
-    echo -e "  ${BRIGHT_BOLD}1)${RESET} Match ${BRIGHT_BOLD}ALL${RESET} filters (AND)"
-    echo -e "  ${BRIGHT_BOLD}2)${RESET} Match ${BRIGHT_BOLD}ANY${RESET} filter (OR)"
-    read -rp "$(printf "${ELECTRIC_YELLOW}Enter 1 for AND, 2 for OR [default: Use configured default]:${RESET}") " filter_mode_choice
+    echo -e "$(printf "$PROMPT_HOW_TO_COMBINE_FILTERS" "${DEFAULT_SEARCH_MODE^^}")" # Show default
+    echo -e "$PROMPT_MATCH_ALL_FILTERS"
+    echo -e "$PROMPT_MATCH_ANY_FILTER"
+    read -rp "$(printf "${ELECTRIC_YELLOW}${PROMPT_ENTER_FILTER_MODE}${RESET} ") " filter_mode_choice
     filter_mode_choice=$(trim "$filter_mode_choice")
     if [[ "$filter_mode_choice" == "1" ]]; then
       filter_mode="and"
@@ -131,9 +132,9 @@ search_entries() {
 
   # Check if any results were found (length of the array is 0)
   if echo "$filtered_json_array" | jq -e 'length == 0' &>/dev/null; then
-    echo -e "${NEON_RED}❌ No matching entries found based on your filters.${RESET}"
+    echo -e "$ERROR_NO_MATCHING_ENTRIES"
   else
-    echo -e "${LIME_GREEN}--- Matching Entries Found ---${RESET}"
+    echo -e "$PROMPT_MATCHING_ENTRIES_FOUND"
     echo "" # Extra space
 
     # Define ANSI color codes for awk.
@@ -183,8 +184,8 @@ search_entries() {
     local num_results
     num_results=$(echo "$filtered_json_array" | jq 'length')
     if [[ "$num_results" -gt 0 ]]; then
-      echo -e "${ELECTRIC_YELLOW}Would you like to copy a field from a result to the clipboard?${RESET}"
-      read -rp "$(printf "${ELECTRIC_YELLOW}Enter result number [1-%d] to copy, or press Enter to skip:${RESET} " "$num_results")" copy_idx
+      echo -e "$PROMPT_COPY_FIELD_QUESTION"
+      read -rp "$(printf "${ELECTRIC_YELLOW}${PROMPT_ENTER_RESULT_NUMBER_TO_COPY}${RESET} " "$num_results")" copy_idx
       copy_idx=$(trim "$copy_idx")
       if [[ "$copy_idx" =~ ^[0-9]+$ ]] && (( copy_idx >= 1 && copy_idx <= num_results )); then
         # Determine available fields for the selected entry
@@ -217,13 +218,13 @@ search_entries() {
         fi
 
         if [[ "${#options[@]}" -eq 0 ]]; then
-          echo -e "${ELECTRIC_YELLOW}No available fields to copy for this entry.${RESET}"
+          echo -e "$PROMPT_NO_FIELDS_TO_COPY"
         else
-          echo -e "${ELECTRIC_YELLOW}Which field do you want to copy?${RESET}"
+          echo -e "$PROMPT_WHICH_FIELD_TO_COPY"
           for i in "${!options[@]}"; do
             echo -e "  ${BRIGHT_BOLD}$((i+1)))${RESET} ${option_labels[$i]}"
           done
-          read -rp "$(printf "${ELECTRIC_YELLOW}Enter field number [1-%d]:${RESET} " "${#options[@]}")" field_idx
+          read -rp "$(printf "${ELECTRIC_YELLOW}${PROMPT_ENTER_FIELD_NUMBER_TO_COPY}${RESET} " "${#options[@]}")" field_idx
           field_idx=$(trim "$field_idx")
           if [[ "$field_idx" =~ ^[0-9]+$ ]] && (( field_idx >= 1 && field_idx <= ${#options[@]} )); then
             local jq_field="${field_map[$((field_idx-1))]}"
@@ -232,14 +233,14 @@ search_entries() {
             if [[ -n "$value_to_copy" ]]; then
               copy_to_clipboard "$value_to_copy"
               if [[ $? -eq 0 ]]; then
-                echo -e "${LIME_GREEN}Copied to clipboard!${RESET}"
+                echo -e "$SUCCESS_COPIED_TO_CLIPBOARD"
                 # Clear the copied value from clipboard after a short delay for security
                 if [[ "$CLIPBOARD_CLEAR_DELAY" -gt 0 ]]; then
                   (sleep "$CLIPBOARD_CLEAR_DELAY" && copy_to_clipboard "") &>/dev/null & disown
                 fi
               fi
             else
-              echo -e "${ELECTRIC_YELLOW}No value found for the selected field.${RESET}"
+              echo -e "$WARNING_NO_VALUE_FOR_FIELD"
             fi
           fi
         fi
@@ -264,11 +265,11 @@ view_entries_formatted() {
   num_entries=$(echo "$entries_json" | jq 'length')
 
   if [[ "$num_entries" -eq 0 ]]; then
-    echo -e "${ELECTRIC_YELLOW}No entries found yet. Start by adding a new one!${RESET}"
+    echo -e "$PROMPT_NO_ENTRIES_FOUND_YET"
     return 0
   fi
 
-  echo -e "${BRIGHT_BOLD}All saved credentials (${num_entries} entries):${RESET}"
+  echo -e "$(printf "$PROMPT_ALL_SAVED_CREDENTIALS" "$num_entries")"
   echo "" # Extra space
 
   # Define ANSI color codes in shell variables, then pass them to awk.
@@ -324,7 +325,7 @@ view_entries_formatted() {
 # Wrapper for view_entries_formatted to be used in the main menu.
 view_all_entries_menu() {
   clear_screen # From _utils.sh
-  echo -e "${BRIGHT_BOLD}${VIOLET}--- View All Credentials ---${RESET}\n"
+  echo -e "$PROMPT_VIEW_ALL_CREDENTIALS_TITLE"
   view_entries_formatted
 
   # --- Clipboard Integration for All Entries ---
@@ -333,8 +334,8 @@ view_all_entries_menu() {
   local num_entries
   num_entries=$(echo "$entries_json" | jq 'length')
   if [[ "$num_entries" -gt 0 ]]; then
-    echo -e "${ELECTRIC_YELLOW}Would you like to copy a field from an entry to the clipboard?${RESET}"
-    read -rp "$(printf "${ELECTRIC_YELLOW}Enter entry number [1-%d] to copy, or press Enter to skip:${RESET} " "$num_entries")" copy_idx
+    echo -e "$PROMPT_COPY_FIELD_FROM_ALL_ENTRIES_QUESTION"
+    read -rp "$(printf "${ELECTRIC_YELLOW}${PROMPT_ENTER_ENTRY_NUMBER_TO_COPY}${RESET} " "$num_entries")" copy_idx
     copy_idx=$(trim "$copy_idx")
     if [[ "$copy_idx" =~ ^[0-9]+$ ]] && (( copy_idx >= 1 && copy_idx <= num_entries )); then
       # Determine available fields for the selected entry
@@ -367,13 +368,13 @@ view_all_entries_menu() {
       fi
 
       if [[ "${#options[@]}" -eq 0 ]]; then
-        echo -e "${ELECTRIC_YELLOW}No available fields to copy for this entry.${RESET}"
+        echo -e "$PROMPT_NO_FIELDS_TO_COPY"
       else
-        echo -e "${ELECTRIC_YELLOW}Which field do you want to copy?${RESET}"
+        echo -e "$PROMPT_WHICH_FIELD_TO_COPY"
         for i in "${!options[@]}"; do
           echo -e "  ${BRIGHT_BOLD}$((i+1)))${RESET} ${option_labels[$i]}"
         done
-        read -rp "$(printf "${ELECTRIC_YELLOW}Enter field number [1-%d]:${RESET} " "${#options[@]}")" field_idx
+        read -rp "$(printf "${ELECTRIC_YELLOW}${PROMPT_ENTER_FIELD_NUMBER_TO_COPY}${RESET} " "${#options[@]}")" field_idx
         field_idx=$(trim "$field_idx")
         if [[ "$field_idx" =~ ^[0-9]+$ ]] && (( field_idx >= 1 && field_idx <= ${#options[@]} )); then
           local jq_field="${field_map[$((field_idx-1))]}"
@@ -382,14 +383,14 @@ view_all_entries_menu() {
           if [[ -n "$value_to_copy" ]]; then
             copy_to_clipboard "$value_to_copy"
             if [[ $? -eq 0 ]]; then
-              echo -e "${LIME_GREEN}Copied to clipboard!${RESET}"
+              echo -e "$SUCCESS_COPIED_TO_CLIPBOARD"
               # Clear the copied value from clipboard after a short delay for security
               if [[ "$CLIPBOARD_CLEAR_DELAY" -gt 0 ]]; then
                 (sleep "$CLIPBOARD_CLEAR_DELAY" && copy_to_clipboard "") &>/dev/null & disown
               fi
             fi
           else
-            echo -e "${ELECTRIC_YELLOW}No value found for the selected field.${RESET}"
+            echo -e "$WARNING_NO_VALUE_FOR_FIELD"
           fi
         fi
       fi

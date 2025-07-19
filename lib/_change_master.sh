@@ -4,18 +4,19 @@
 
 # Dependencies:
 # - _colors.sh, _utils.sh, _crypto.sh, _data_storage.sh
+# - _prompts.sh (for prompt strings)
 # Uses global variables: ENC_JSON_FILE, MASTER_PASSWORD, IS_AUTHENTICATED, CREDENTIALS_DATA
 
 change_master_password() {
   clear_screen
-  echo -e "${BRIGHT_BOLD}${VIOLET}--- Change Master Password ---${RESET}"
-  echo -e "${AQUA}You will be prompted to enter your current master password, then set a new one.${RESET}\n"
+  echo -e "$PROMPT_CHANGE_MASTER_TITLE"
+  echo -e "$PROMPT_CHANGE_MASTER_HINT"
 
   # Prompt for current password and verify
   local current_pass
-  get_master_password "Enter current master password: " current_pass "false"
+  get_master_password "$PROMPT_ENTER_CURRENT_MASTER_PASS" current_pass "false"
   if [[ -z "$current_pass" ]]; then
-    echo -e "${NEON_RED}🚫 No password entered. Aborting.${RESET}"
+    echo -e "$ERROR_NO_PASSWORD_ENTERED"
     pause
     return 1 # Indicate failure/cancellation
   fi
@@ -24,22 +25,22 @@ change_master_password() {
   # We decrypt the *existing* encrypted file with the *current* password to verify it.
   # Redirect stderr to /dev/null to suppress openssl errors during verification
   if ! decrypt_data "$ENC_JSON_FILE" "$current_pass" >/dev/null 2>/dev/null; then
-    echo -e "${NEON_RED}❌ Incorrect current master password. Aborting.${RESET}"
+    echo -e "$ERROR_INCORRECT_CURRENT_MASTER_PASS"
     pause
     return 1 # Indicate failure
   fi
 
   # Prompt for new password (with confirmation)
   local new_pass
-  get_master_password "Enter NEW master password: " new_pass "true"
+  get_master_password "$PROMPT_ENTER_NEW_MASTER_PASS" new_pass "true"
   if [[ -z "$new_pass" ]]; then
-    echo -e "${NEON_RED}🚫 New password not set. Aborting.${RESET}"
+    echo -e "$ERROR_NEW_PASSWORD_NOT_SET"
     pause
     return 1 # Indicate failure/cancellation
   fi
 
   if [[ "$new_pass" == "$current_pass" ]]; then
-    echo -e "${ELECTRIC_YELLOW}New password is the same as the current password. No changes made.${RESET}"
+    echo -e "$WARNING_NEW_PASS_SAME_AS_CURRENT"
     pause
     return 0 # Indicate success (no change needed)
   fi
@@ -49,7 +50,7 @@ change_master_password() {
   temp_encrypted_file=$(mktemp)
   # Redirect stderr of encrypt_data to /dev/null to suppress openssl errors
   if ! encrypt_data "$CREDENTIALS_DATA" "$new_pass" "$temp_encrypted_file" 2>/dev/null; then
-    echo -e "${NEON_RED}❌ Failed to encrypt data with new password. Aborting.${RESET}"
+    echo -e "$ERROR_ENCRYPT_NEW_PASS_FAILED"
     rm -f "$temp_encrypted_file"
     pause
     return 1 # Indicate failure
@@ -58,7 +59,7 @@ change_master_password() {
   # Overwrite the encrypted file with the newly encrypted content
   mv "$temp_encrypted_file" "$ENC_JSON_FILE"
   if [[ $? -ne 0 ]]; then
-    echo -e "${NEON_RED}❌ Failed to move encrypted data to final file. Check permissions.${RESET}"
+    echo -e "$ERROR_MOVE_ENCRYPTED_FILE_FAILED"
     rm -f "$temp_encrypted_file" # Clean up temp file
     pause
     return 1 # Indicate failure
@@ -66,7 +67,7 @@ change_master_password() {
 
   # Update the global MASTER_PASSWORD only after successful change
   MASTER_PASSWORD="$new_pass"
-  echo -e "${LIME_GREEN}✅ Master password successfully changed!${RESET}"
+  echo -e "$SUCCESS_MASTER_PASSWORD_CHANGED"
   pause
   return 0 # Indicate success
 }
