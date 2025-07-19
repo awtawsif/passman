@@ -247,20 +247,18 @@ add_entry() {
   fi
 
   # Create a new JSON object for the entry, dynamically adding fields if they are not empty
-  local new_entry_json_builder="{"
-  new_entry_json_builder+="\"website\": \"$(jq -rR <<< "$website" )\"" # Use jq -rR for proper JSON string escaping
-  [[ -n "$email" ]] && new_entry_json_builder+=", \"email\": \"$(jq -rR <<< "$email" )\""
-  [[ -n "$username" ]] && new_entry_json_builder+=", \"username\": \"$(jq -rR <<< "$username" )\""
-  [[ -n "$password" ]] && new_entry_json_builder+=", \"password\": \"$(jq -rR <<< "$password" )\""
-  [[ -n "$logged_in_via" ]] && new_entry_json_builder+=", \"logged_in_via\": \"$(jq -rR <<< "$logged_in_via" )\""
-  [[ -n "$linked_email" ]] && new_entry_json_builder+=", \"linked_email\": \"$(jq -rR <<< "$linked_email" )\""
-  [[ -n "$recovery_email" ]] && new_entry_json_builder+=", \"recovery_email\": \"$(jq -rR <<< "$recovery_email" )\""
-  new_entry_json_builder+=", \"added\": \"$timestamp\""
-  new_entry_json_builder+="}"
-
   local new_entry_json
-  new_entry_json=$(echo "$new_entry_json_builder" | jq '.')
-
+  new_entry_json=$(jq -n \
+    --arg website "$website" \
+    --arg email "$email" \
+    --arg username "$username" \
+    --arg password "$password" \
+    --arg logged_in_via "$logged_in_via" \
+    --arg linked_email "$linked_email" \
+    --arg recovery_email "$recovery_email" \
+    --arg added "$timestamp" \
+    '{website: $website, email: $email, username: $username, password: $password, logged_in_via: $logged_in_via, linked_email: $linked_email, recovery_email: $recovery_email, added: $added}' \
+  | jq 'walk(if type == "string" and . == "" then empty else . end)') # Remove empty fields
 
   # Append the new entry to the existing JSON array and save it back
   local updated_entries_json
@@ -426,8 +424,9 @@ edit_entry() {
   local current_entry_json
   current_entry_json=$(echo "$entries_json" | jq ".[$((selected_index - 1))]")
 
+  # Extract current values for all fields
   local current_website
-  current_website=$(echo "$current_entry_json" | jq -r '.website')
+  current_website=$(echo "$current_entry_json" | jq -r '.website // ""')
   local current_email
   current_email=$(echo "$current_entry_json" | jq -r '.email // ""')
   local current_username
@@ -439,282 +438,402 @@ edit_entry() {
   local current_linked_email
   current_linked_email=$(echo "$current_entry_json" | jq -r '.linked_email // ""')
   local current_recovery_email
-  current_recovery_email=$(echo "$current_entry_json" | jq -r '.recovery_email // ""') # New field
+  current_recovery_email=$(echo "$current_entry_json" | jq -r '.recovery_email // ""')
   local current_added
-  current_added=$(echo "$current_entry_json" | jq -r '.added')
+  current_added=$(echo "$current_entry_json" | jq -r '.added // ""')
+
+  # Variables to hold new values, initialized with current values
+  local new_website="$current_website"
+  local new_email="$current_email"
+  local new_username="$current_username"
+  local new_password="$current_password"
+  local new_logged_in_via="$current_logged_in_via"
+  local new_linked_email="$current_linked_email"
+  local new_recovery_email="$current_recovery_email"
 
   # --- Display preview of the selected entry ---
-  echo -e "$(printf "$PROMPT_CURRENTLY_SELECTED_ENTRY" "$selected_index")"
-  echo -e "  🌐 Website      : ${BRIGHT_BOLD}$current_website${RESET}"
-  if [[ -n "$current_logged_in_via" ]]; then
-    echo -e "  🔗 Logged in via: ${BRIGHT_BOLD}$current_logged_in_via${RESET}"
-    [[ -n "$current_linked_email" ]] && echo -e "  📧 Linked Email : ${BRIGHT_BOLD}$current_linked_email${RESET}"
-    [[ -n "$current_username" ]] && echo -e "  👤 Username     : ${BRIGHT_BOLD}$current_username${RESET}"
-  elif [[ -n "$current_email" ]]; then
-    echo -e "  📧 Email        : ${BRIGHT_BOLD}$current_email${RESET}"
-  elif [[ -n "$current_username" ]]; then
-    echo -e "  👤 Username     : ${BRIGHT_BOLD}$current_username${RESET}"
-  fi
-  if [[ -n "$current_recovery_email" ]]; then
-    echo -e "  🚨 Recovery Email: ${BRIGHT_BOLD}$current_recovery_email${RESET}"
-  fi
-  if [[ -n "$current_password" ]]; then
-      echo -e "  🔑 Password     : ${BRIGHT_BOLD}$current_password${RESET}" # Display current password if it exists
-  fi
-  echo -e "  📅 Added        : ${BRIGHT_BOLD}$current_added${RESET}"
-  echo "" # Extra space
-  echo -e "$PROMPT_EDITING_HINT"
-  echo "" # Extra space
+  display_single_entry_details() {
+    local entry_json_to_display="$1"
+    echo -e "$(printf "$PROMPT_CURRENTLY_SELECTED_ENTRY" "$selected_index")"
+    echo -e "  🌐 Website      : ${BRIGHT_BOLD}$(echo "$entry_json_to_display" | jq -r '.website // ""')${RESET}"
+    local disp_logged_in_via=$(echo "$entry_json_to_display" | jq -r '.logged_in_via // ""')
+    local disp_linked_email=$(echo "$entry_json_to_display" | jq -r '.linked_email // ""')
+    local disp_username=$(echo "$entry_json_to_display" | jq -r '.username // ""')
+    local disp_email=$(echo "$entry_json_to_display" | jq -r '.email // ""')
+    local disp_recovery_email=$(echo "$entry_json_to_display" | jq -r '.recovery_email // ""')
+    local disp_password=$(echo "$entry_json_to_display" | jq -r '.password // ""')
+    local disp_added=$(echo "$entry_json_to_display" | jq -r '.added // ""')
 
-  local new_website="$current_website"
-  while true; do
-    read -rp "$(printf "$PROMPT_UPDATE_WEBSITE_NAME" "$current_website")" new_website_input
-    new_website_input=$(trim "${new_website_input}") # From _utils.sh
+    if [[ -n "$disp_logged_in_via" ]]; then
+      echo -e "  🔗 Logged in via: ${BRIGHT_BOLD}$disp_logged_in_via${RESET}"
+      [[ -n "$disp_linked_email" ]] && echo -e "  📧 Linked Email : ${BRIGHT_BOLD}$disp_linked_email${RESET}"
+      [[ -n "$disp_username" ]] && echo -e "  👤 Username     : ${BRIGHT_BOLD}$disp_username${RESET}"
+    elif [[ -n "$disp_email" ]]; then
+      echo -e "  📧 Email        : ${BRIGHT_BOLD}$disp_email${RESET}"
+      [[ -n "$disp_username" ]] && echo -e "  👤 Username     : ${BRIGHT_BOLD}$disp_username${RESET}"
+    elif [[ -n "$disp_username" ]]; then
+      echo -e "  👤 Username     : ${BRIGHT_BOLD}$disp_username${RESET}"
+    fi
+    if [[ -n "$disp_recovery_email" ]]; then
+      echo -e "  🚨 Recovery Email: ${BRIGHT_BOLD}$disp_recovery_email${RESET}"
+    fi
+    if [[ -n "$disp_password" ]]; then
+        echo -e "  🔑 Password     : ${BRIGHT_BOLD}$disp_password${RESET}"
+    fi
+    echo -e "  📅 Added        : ${BRIGHT_BOLD}$disp_added${RESET}"
     echo "" # Extra space
-    local lower_input
-    lower_input=$(echo "$new_website_input" | tr '[:upper:]' '[:lower:]')
-    if [[ "$lower_input" == "c" ]]; then
+  }
+
+  display_single_entry_details "$current_entry_json"
+
+  local field_options=(
+    "Website"
+    "Email"
+    "Username"
+    "Password"
+    "Logged in via"
+    "Linked Email"
+    "Recovery Email"
+  )
+  local field_vars=(
+    "new_website"
+    "new_email"
+    "new_username"
+    "new_password"
+    "new_logged_in_via"
+    "new_linked_email"
+    "new_recovery_email"
+  )
+  local field_prompts=(
+    "$PROMPT_UPDATE_WEBSITE_NAME"
+    "$PROMPT_UPDATE_EMAIL"
+    "$PROMPT_UPDATE_USERNAME"
+    "$PROMPT_UPDATE_WEBSITE_PASSWORD"
+    "$PROMPT_UPDATE_LOGGED_IN_VIA"
+    "$PROMPT_UPDATE_LINKED_EMAIL"
+    "$PROMPT_UPDATE_RECOVERY_EMAIL"
+  )
+
+  local continue_editing="y"
+  while [[ "$continue_editing" =~ ^[yY]$ ]]; do
+    echo -e "$PROMPT_SELECT_FIELD_TO_EDIT"
+    for i in "${!field_options[@]}"; do
+      local current_val_for_display
+      # Dynamically get the current value for display in the menu
+      case "${field_options[$i]}" in
+        "Website") current_val_for_display="$new_website" ;;
+        "Email") current_val_for_display="$new_email" ;;
+        "Username") current_val_for_display="$new_username" ;;
+        "Password") current_val_for_display="********" ;; # Mask password
+        "Logged in via") current_val_for_display="$new_logged_in_via" ;;
+        "Linked Email") current_val_for_display="$new_linked_email" ;;
+        "Recovery Email") current_val_for_display="$new_recovery_email" ;;
+      esac
+      echo -e "  ${BRIGHT_BOLD}$((i+1)))${RESET} ${field_options[$i]} ${TEXT_CYAN}(current: ${BRIGHT_BOLD}${current_val_for_display:-None}${TEXT_CYAN})${RESET}"
+    done
+    echo "" # Extra space
+    echo -e "  ${AQUA}${BRIGHT_BOLD}Q)${RESET} Finish Editing and Review"
+    echo "" # Extra space
+
+    local field_choice
+    read -rp "$(printf "${ELECTRIC_YELLOW}${PROMPT_ENTER_FIELD_NUMBER_TO_EDIT}${RESET} ") " field_choice_input
+    field_choice=$(trim "$field_choice_input")
+    echo "" # Extra space
+
+    local lower_field_choice=$(echo "$field_choice" | tr '[:upper:]' '[:lower:]')
+
+    if [[ "$lower_field_choice" == "q" ]]; then
+      break # Exit editing loop
+    fi
+
+    if [[ "$lower_field_choice" == "c" ]]; then
       echo -e "$PROMPT_OPERATION_CANCELLED_RETURN_MENU"
-      pause # From _utils.sh
+      pause
       return
     fi
-    if [[ -n "$new_website_input" ]]; then
-      new_website="$new_website_input"
-      break
-    elif [[ -n "$current_website" ]]; then
-      # If current website exists and new input is empty, keep current
-      echo -e "$(printf "$PROMPT_KEEPING_CURRENT_WEBSITE" "$current_website")"
-      new_website="$current_website"
-      break
-    else
-      echo -e "$ERROR_WEBSITE_EMPTY"
+
+    if ! [[ "$field_choice" =~ ^[0-9]+$ ]] || (( field_choice < 1 || field_choice > ${#field_options[@]} )); then
+      echo -e "$ERROR_INVALID_FIELD_NUMBER"
       echo "" # Extra space
+      continue
     fi
-  done
 
-  local new_logged_in_via_temp
-  # Use DEFAULT_SERVICE as the default value for the prompt if it's set and current_logged_in_via is empty
-  local prompt_logged_in_via_default="$current_logged_in_via"
-  if [[ -z "$current_logged_in_via" && -n "$DEFAULT_SERVICE" ]]; then
-    prompt_logged_in_via_default="$DEFAULT_SERVICE"
-  fi
+    local selected_field_idx=$((field_choice - 1))
+    local selected_field_name="${field_options[$selected_field_idx]}"
+    local selected_field_var_name="${field_vars[$selected_field_idx]}"
+    local selected_field_prompt="${field_prompts[$selected_field_idx]}"
 
-  if ! get_optional_input_with_remove "$PROMPT_UPDATE_LOGGED_IN_VIA" "$prompt_logged_in_via_default" new_logged_in_via_temp; then
-    echo -e "${CYBER_BLUE}Operation cancelled. Returning to main menu.${RESET}" # Added message
-    pause # Added pause
     clear_screen
-    return
-  fi
+    echo -e "$(printf "$PROMPT_EDITING_FIELD" "$selected_field_name")"
 
-  if [[ $? -ne 0 ]]; then clear_screen; return; fi # Check for CANCEL and clear screen
-
-  local new_email=""
-  local new_linked_email=""
-  local new_username=""
-  local actual_logged_in_via="$new_logged_in_via_temp"
-
-  if [[ -n "$new_logged_in_via_temp" ]]; then
-    # If a service is specified, linked email or username is now optionally mandatory (X/BLANK/C allowed)
-    while true; do
-      local prompt_linked_email_default="$current_linked_email"
-      if [[ -z "$current_linked_email" && -n "$DEFAULT_EMAIL" ]]; then
-        prompt_linked_email_default="$DEFAULT_EMAIL"
-      fi
-
-      if ! get_optional_input_with_remove "$(printf "$PROMPT_UPDATE_LINKED_EMAIL" "$new_logged_in_via_temp")" "$prompt_linked_email_default" new_linked_email; then
-        echo -e "${CYBER_BLUE}Operation cancelled. Returning to main menu.${RESET}" # Added message
-        pause # Added pause
-        clear_screen
-        return
-      fi
-      if [[ -z "$new_linked_email" ]]; then
-        if ! get_optional_input_with_remove "$(printf "$PROMPT_UPDATE_USERNAME_FOR_SERVICE" "$new_logged_in_via_temp")" "$current_username" new_username; then
-          echo -e "${CYBER_BLUE}Operation cancelled. Returning to main menu.${RESET}" # Added message
-          pause # Added pause
-          clear_screen
+    case "$selected_field_name" in
+      "Website")
+        if ! get_mandatory_input_conditional "$selected_field_prompt" "${!selected_field_var_name}" "$selected_field_var_name" "true"; then
+          echo -e "$PROMPT_OPERATION_CANCELLED_RETURN_MENU"
+          pause
           return
         fi
-        if [[ -z "$new_username" ]]; then
-          echo -e "$WARNING_BOTH_EMAIL_USERNAME_EMPTY_SERVICE_REMOVED"
-          actual_logged_in_via=""
-        fi
-        break
-      else
-        new_username=""
-        break
-      fi
-    done
-  fi
-
-  if [[ -z "$actual_logged_in_via" ]]; then
-    # If no service, direct email or username is used and one is mandatory
-    while true; do
-      local prompt_email_default="$current_email"
-      if [[ -z "$current_email" && -n "$DEFAULT_EMAIL" ]]; then
-        prompt_email_default="$DEFAULT_EMAIL"
-      fi
-
-      if ! get_optional_input_with_remove "$PROMPT_UPDATE_EMAIL" "$prompt_email_default" new_email; then
-        echo -e "${CYBER_BLUE}Operation cancelled. Returning to main menu.${RESET}" # Added message
-        pause # Added pause
-        clear_screen
-        return
-      fi
-      if [[ -z "$new_email" ]]; then
-        if ! get_optional_input_with_remove "$PROMPT_UPDATE_USERNAME" "$current_username" new_username; then
-          echo -e "${CYBER_BLUE}Operation cancelled. Returning to main menu.${RESET}" # Added message
-          pause # Added pause
-          clear_screen
-          return
-        fi
-        if [[ -z "$new_username" ]]; then
-          echo -e "$ERROR_EMAIL_OR_USERNAME_REQUIRED"
+        ;;
+      "Email")
+        # If logged_in_via is set, email should be cleared.
+        if [[ -n "$new_logged_in_via" ]]; then
+          echo -e "$WARNING_CANNOT_SET_EMAIL_WITH_SERVICE"
+          echo -e "${AQUA}To set an email, first remove the 'Logged in via' service.${RESET}"
+          pause
           continue
         fi
-      else
-        new_username=""
-      fi
-      break
-    done
-    new_linked_email="" # Ensure linked email is cleared
-  fi
+        local prompt_email_default="${!selected_field_var_name}"
+        if [[ -z "${!selected_field_var_name}" && -n "$DEFAULT_EMAIL" ]]; then
+          prompt_email_default="$DEFAULT_EMAIL"
+        fi
+        if ! get_optional_input_with_remove "$selected_field_prompt" "$prompt_email_default" "$selected_field_var_name"; then
+          echo -e "$PROMPT_OPERATION_CANCELLED_RETURN_MENU"
+          pause
+          return
+        fi
+        # If email is set, clear username and linked_email
+        if [[ -n "${!selected_field_var_name}" ]]; then
+          new_username=""
+          new_linked_email=""
+        fi
+        ;;
+      "Username")
+        # If logged_in_via is set, username is for service. If email is set, username is optional.
+        if [[ -n "$new_email" ]]; then
+          # Username is optional if email is set
+          if ! get_optional_input_with_remove "$selected_field_prompt" "${!selected_field_var_name}" "$selected_field_var_name"; then
+            echo -e "$PROMPT_OPERATION_CANCELLED_RETURN_MENU"
+            pause
+            return
+          fi
+        elif [[ -z "$new_logged_in_via" ]]; then
+          # Username is mandatory if no email and no service
+          if ! get_mandatory_input_conditional "$selected_field_prompt" "${!selected_field_var_name}" "$selected_field_var_name" "true"; then
+            echo -e "$PROMPT_OPERATION_CANCELLED_RETURN_MENU"
+            pause
+            return
+          fi
+          new_email="" # Clear email if username is used as primary identifier
+        else
+          # Username for service, optional
+          if ! get_optional_input_with_remove "$selected_field_prompt" "${!selected_field_var_name}" "$selected_field_var_name"; then
+            echo -e "$PROMPT_OPERATION_CANCELLED_RETURN_MENU"
+            pause
+            return
+          fi
+        fi
+        ;;
+      "Password")
+        local use_generator_choice # Renamed to avoid clash with potential 'use_generator' from password generation block
+        while true; do
+          read -rp "$(printf "$PROMPT_GENERATE_NEW_PASSWORD") " use_generator_choice_input
+          use_generator_choice_input=$(trim "${use_generator_choice_input:-n}") # From _utils.sh - Default to 'n'
+          echo "" # Extra space
+          local lower_input
+          lower_input=$(echo "$use_generator_choice_input" | tr '[:upper:]' '[:lower:]')
+          if [[ "$lower_input" == "c" ]]; then
+            echo -e "$PROMPT_OPERATION_CANCELLED_RETURN_MENU"
+            pause # From _utils.sh
+            return
+          fi
+          if [[ "$use_generator_choice_input" =~ ^[yYnN]$ ]]; then
+            use_generator_choice="$use_generator_choice_input"
+            break
+          fi
+          echo -e "$ERROR_INVALID_YES_NO_INPUT"
+          echo "" # Extra space
+        done
 
-  local new_recovery_email
-  if ! get_optional_input_with_remove "$PROMPT_UPDATE_RECOVERY_EMAIL" "$current_recovery_email" new_recovery_email; then
-    echo -e "${CYBER_BLUE}Operation cancelled. Returning to main menu.${RESET}" # Added message
-    pause # Added pause
+        if [[ "$use_generator_choice" =~ ^[yY]$ ]]; then
+          local length
+          while true; do
+            read -rp "$(printf "$PROMPT_NEW_PASSWORD_LENGTH" "$DEFAULT_PASSWORD_LENGTH")" length_input
+            length_input=$(trim "$length_input") # From _utils.sh
+            echo "" # Extra space
+            local lower_input
+            lower_input=$(echo "$length_input" | tr '[:upper:]' '[:lower:]')
+            if [[ "$lower_input" == "c" ]]; then
+              echo -e "$PROMPT_OPERATION_CANCELLED_RETURN_MENU"
+              pause # From _utils.sh
+              return
+            fi
+            length=${length_input:-$DEFAULT_PASSWORD_LENGTH} # Use global default
+            if [[ "$length" =~ ^[0-9]+$ && "$length" -ge 1 ]]; then
+              break
+            fi
+            echo -e "$ERROR_INVALID_LENGTH"
+            echo "" # Extra space
+          done
+
+          local upper numbers symbols
+          while true; do
+            read -rp "$(printf "$PROMPT_INCLUDE_UPPERCASE" "$DEFAULT_PASSWORD_UPPER")" upper_input
+            upper=$(trim "${upper_input:-$DEFAULT_PASSWORD_UPPER}") # Use global default
+            echo "" # Extra space
+            local lower_input
+            lower_input=$(echo "$upper_input" | tr '[:upper:]' '[:lower:]')
+            if [[ "$lower_input" == "c" ]]; then
+              echo -e "$PROMPT_OPERATION_CANCELLED_RETURN_MENU"
+              pause # From _utils.sh
+              return
+            fi
+            if [[ "$upper" =~ ^[yYnN]$ ]]; then
+              break
+            fi
+            echo -e "$ERROR_INVALID_YES_NO_INPUT"
+            echo "" # Extra space
+          done
+
+          while true; do
+            read -rp "$(printf "$PROMPT_INCLUDE_NUMBERS" "$DEFAULT_PASSWORD_NUMBERS")" numbers_input
+            numbers=$(trim "${numbers_input:-$DEFAULT_PASSWORD_NUMBERS}") # Use global default
+            echo "" # Extra space
+            local lower_input
+            lower_input=$(echo "$numbers_input" | tr '[:upper:]' '[:lower:]')
+            if [[ "$lower_input" == "c" ]]; then
+              echo -e "$PROMPT_OPERATION_CANCELLED_RETURN_MENU"
+              pause # From _utils.sh
+              return
+            fi
+            if [[ "$numbers" =~ ^[yYnN]$ ]]; then
+              break
+            fi
+            echo -e "$ERROR_INVALID_YES_NO_INPUT"
+            echo "" # Extra space
+          done
+
+          while true; do
+            read -rp "$(printf "$PROMPT_INCLUDE_SYMBOLS" "$DEFAULT_PASSWORD_SYMBOLS")" symbols_input
+            symbols=$(trim "${symbols_input:-$DEFAULT_PASSWORD_SYMBOLS}") # Use global default
+            echo "" # Extra space
+            local lower_input
+            lower_input=$(echo "$symbols_input" | tr '[:upper:]' '[:lower:]')
+            if [[ "$lower_input" == "c" ]]; then
+              echo -e "$PROMPT_OPERATION_CANCELLED_RETURN_MENU"
+              pause # From _utils.sh
+              return
+            fi
+            if [[ "$symbols" =~ ^[yYnN]$ ]]; then
+              break
+            fi
+            echo -e "$ERROR_INVALID_YES_NO_INPUT"
+            echo "" # Extra space
+          done
+
+          new_password=$(generate_password "$length" "$upper" "$numbers" "$symbols") # From _password_generator.sh
+          echo -e "$(printf "$PROMPT_GENERATED_NEW_PASSWORD" "$new_password")"
+        else
+            # If not generating, prompt for manual password entry
+            if ! get_optional_input_with_remove "$selected_field_prompt" "$current_password" new_password; then
+              echo -e "$PROMPT_OPERATION_CANCELLED_RETURN_MENU"
+              pause
+              return
+            fi
+        fi
+        ;;
+      "Logged in via")
+        local prompt_logged_in_via_default="$new_logged_in_via"
+        if [[ -z "$new_logged_in_via" && -n "$DEFAULT_SERVICE" ]]; then
+          prompt_logged_in_via_default="$DEFAULT_SERVICE"
+        fi
+        if ! get_optional_input_with_remove "$selected_field_prompt" "$prompt_logged_in_via_default" new_logged_in_via; then
+          echo -e "$PROMPT_OPERATION_CANCELLED_RETURN_MENU"
+          pause
+          return
+        fi
+
+        # If logged_in_via is set, clear email
+        if [[ -n "$new_logged_in_via" ]]; then
+          new_email=""
+        else
+          # If logged_in_via is cleared, also clear linked_email and username for service
+          new_linked_email=""
+          new_username=""
+        fi
+        ;;
+      "Linked Email")
+        # Linked email is only applicable if "Logged in via" is set
+        if [[ -z "$new_logged_in_via" ]]; then
+          echo -e "$WARNING_CANNOT_SET_LINKED_EMAIL_WITHOUT_SERVICE"
+          echo -e "${AQUA}To set a linked email, first set the 'Logged in via' service.${RESET}"
+          pause
+          continue
+        fi
+        local prompt_linked_email_default="$new_linked_email"
+        if [[ -z "$new_linked_email" && -n "$DEFAULT_EMAIL" ]]; then
+          prompt_linked_email_default="$DEFAULT_EMAIL"
+        fi
+        if ! get_optional_input_with_remove "$(printf "$selected_field_prompt" "$new_logged_in_via")" "$prompt_linked_email_default" new_linked_email; then
+          echo -e "$PROMPT_OPERATION_CANCELLED_RETURN_MENU"
+          pause
+          return
+        fi
+        # If linked email is set, clear username for service
+        if [[ -n "$new_linked_email" ]]; then
+          new_username=""
+        fi
+        ;;
+      "Recovery Email")
+        if ! get_optional_input_with_remove "$selected_field_prompt" "${!selected_field_var_name}" "$selected_field_var_name"; then
+          echo -e "$PROMPT_OPERATION_CANCELLED_RETURN_MENU"
+          pause
+          return
+        fi
+        ;;
+    esac
+
+    # After each field edit, show the updated preview
+    local temp_updated_entry_json_for_preview=$(jq -n \
+      --arg website "$new_website" \
+      --arg email "$new_email" \
+      --arg username "$new_username" \
+      --arg password "$new_password" \
+      --arg logged_in_via "$new_logged_in_via" \
+      --arg linked_email "$new_linked_email" \
+      --arg recovery_email "$new_recovery_email" \
+      --arg added "$current_added" \
+      '{website: $website, email: $email, username: $username, password: $password, logged_in_via: $logged_in_via, linked_email: $linked_email, recovery_email: $recovery_email, added: $added}' \
+    | jq 'walk(if type == "string" and . == "" then empty else . end)') # Remove empty fields
+
     clear_screen
-    return
-  fi
+    echo -e "$PROMPT_CURRENT_ENTRY_STATUS"
+    display_single_entry_details "$temp_updated_entry_json_for_preview"
 
-  local new_password=""
-  local use_generator_choice # Renamed to avoid clash with potential 'use_generator' from password generation block
-  while true; do
-    read -rp "$(printf "$PROMPT_GENERATE_NEW_PASSWORD") " use_generator_choice_input
-    use_generator_choice_input=$(trim "${use_generator_choice_input:-n}") # From _utils.sh - Default to 'n'
-    echo "" # Extra space
-    local lower_input
-    lower_input=$(echo "$use_generator_choice_input" | tr '[:upper:]' '[:lower:]')
-    if [[ "$lower_input" == "c" ]]; then
-      echo -e "$PROMPT_OPERATION_CANCELLED_RETURN_MENU"
-      pause # From _utils.sh
-      return
-    fi
-    if [[ "$use_generator_choice_input" =~ ^[yYnN]$ ]]; then
-      use_generator_choice="$use_generator_choice_input"
-      break
-    fi
-    echo -e "$ERROR_INVALID_YES_NO_INPUT"
-    echo "" # Extra space
+    # Ask if user wants to edit another field
+    while true; do
+      read -rp "$(printf "$PROMPT_EDIT_ANOTHER_FIELD") " continue_editing_input
+      continue_editing=$(trim "${continue_editing_input:-y}")
+      echo "" # Extra space
+      if [[ "$(echo "$continue_editing" | tr '[:upper:]' '[:lower:]')" == "c" ]]; then
+        echo -e "$PROMPT_OPERATION_CANCELLED_RETURN_MENU"
+        pause
+        return
+      fi
+      if [[ "$continue_editing" =~ ^[yYnN]$ ]]; then
+        break
+      fi
+      echo -e "$ERROR_INVALID_YES_NO_INPUT"
+      echo "" # Extra space
+    done
+    clear_screen # Clear screen before showing field selection again
   done
-
-  if [[ "$use_generator_choice" =~ ^[yY]$ ]]; then
-    local length
-    while true; do
-      read -rp "$(printf "$PROMPT_NEW_PASSWORD_LENGTH" "$DEFAULT_PASSWORD_LENGTH")" length_input
-      length_input=$(trim "$length_input") # From _utils.sh
-      echo "" # Extra space
-      local lower_input
-      lower_input=$(echo "$length_input" | tr '[:upper:]' '[:lower:]')
-      if [[ "$lower_input" == "c" ]]; then
-        echo -e "$PROMPT_OPERATION_CANCELLED_RETURN_MENU"
-        pause # From _utils.sh
-        return
-      fi
-      length=${length_input:-$DEFAULT_PASSWORD_LENGTH} # Use global default
-      if [[ "$length" =~ ^[0-9]+$ && "$length" -ge 1 ]]; then
-        break
-      fi
-      echo -e "$ERROR_INVALID_LENGTH"
-      echo "" # Extra space
-    done
-
-    local upper numbers symbols
-    while true; do
-      read -rp "$(printf "$PROMPT_INCLUDE_UPPERCASE" "$DEFAULT_PASSWORD_UPPER")" upper_input
-      upper=$(trim "${upper_input:-$DEFAULT_PASSWORD_UPPER}") # Use global default
-      echo "" # Extra space
-      local lower_input
-      lower_input=$(echo "$upper_input" | tr '[:upper:]' '[:lower:]')
-      if [[ "$lower_input" == "c" ]]; then
-        echo -e "$PROMPT_OPERATION_CANCELLED_RETURN_MENU"
-        pause # From _utils.sh
-        return
-      fi
-      if [[ "$upper" =~ ^[yYnN]$ ]]; then
-        break
-      fi
-      echo -e "$ERROR_INVALID_YES_NO_INPUT"
-      echo "" # Extra space
-    done
-
-    while true; do
-      read -rp "$(printf "$PROMPT_INCLUDE_NUMBERS" "$DEFAULT_PASSWORD_NUMBERS")" numbers_input
-      numbers=$(trim "${numbers_input:-$DEFAULT_PASSWORD_NUMBERS}") # Use global default
-      echo "" # Extra space
-      local lower_input
-      lower_input=$(echo "$numbers_input" | tr '[:upper:]' '[:lower:]')
-      if [[ "$lower_input" == "c" ]]; then
-        echo -e "$PROMPT_OPERATION_CANCELLED_RETURN_MENU"
-        pause # From _utils.sh
-        return
-      fi
-      if [[ "$numbers" =~ ^[yYnN]$ ]]; then
-        break
-      fi
-      echo -e "$ERROR_INVALID_YES_NO_INPUT"
-      echo "" # Extra space
-    done
-
-    while true; do
-      read -rp "$(printf "$PROMPT_INCLUDE_SYMBOLS" "$DEFAULT_PASSWORD_SYMBOLS")" symbols_input
-      symbols=$(trim "${symbols_input:-$DEFAULT_PASSWORD_SYMBOLS}") # Use global default
-      echo "" # Extra space
-      local lower_input
-      lower_input=$(echo "$symbols_input" | tr '[:upper:]' '[:lower:]')
-      if [[ "$lower_input" == "c" ]]; then
-        echo -e "$PROMPT_OPERATION_CANCELLED_RETURN_MENU"
-        pause # From _utils.sh
-        return
-      fi
-      if [[ "$symbols" =~ ^[yYnN]$ ]]; then
-        break
-      fi
-      echo -e "$ERROR_INVALID_YES_NO_INPUT"
-      echo "" # Extra space
-    done
-
-    new_password=$(generate_password "$length" "$upper" "$numbers" "$symbols") # From _password_generator.sh
-    echo -e "$(printf "$PROMPT_GENERATED_NEW_PASSWORD" "$new_password")"
-  else
-      # If not generating, prompt for manual password entry
-      # Always use get_optional_input_with_remove for password in edit mode
-      # This allows keeping current, setting new, or removing (with 'X')
-      if ! get_optional_input_with_remove "$PROMPT_UPDATE_WEBSITE_PASSWORD" "$current_password" new_password; then
-        clear_screen
-        return
-      fi
-    fi
-  echo "" # Extra space
 
   local timestamp
   timestamp=$(date "+%Y-%m-%d %H:%M:%S")
 
-  # Build the updated entry dynamically, removing fields if their new value is empty
-  local updated_entry_json_builder="{"
-  updated_entry_json_builder+="\"website\": \"$(jq -rR <<< "$new_website" )\"" # Use jq -rR for proper JSON string escaping
-  [[ -n "$new_email" ]] && updated_entry_json_builder+=", \"email\": \"$(jq -rR <<< "$new_email" )\""
-  [[ -n "$new_username" ]] && updated_entry_json_builder+=", \"username\": \"$(jq -rR <<< "$new_username" )\""
-  [[ -n "$new_password" ]] && updated_entry_json_builder+=", \"password\": \"$(jq -rR <<< "$new_password" )\""
-  [[ -n "$actual_logged_in_via" ]] && updated_entry_json_builder+=", \"logged_in_via\": \"$(jq -rR <<< "$actual_logged_in_via" )\""
-  [[ -n "$new_linked_email" ]] && updated_entry_json_builder+=", \"linked_email\": \"$(jq -rR <<< "$new_linked_email" )\""
-  [[ -n "$new_recovery_email" ]] && updated_entry_json_builder+=", \"recovery_email\": \"$(jq -rR <<< "$new_recovery_email" )\""
-  updated_entry_json_builder+=", \"added\": \"$timestamp\""
-  updated_entry_json_builder+="}"
-
+  # Build the updated entry dynamically using jq --arg, which handles escaping correctly
   local updated_single_entry_json
-  updated_single_entry_json=$(echo "$updated_entry_json_builder" | jq '.')
-
+  updated_single_entry_json=$(jq -n \
+    --arg website "$new_website" \
+    --arg email "$new_email" \
+    --arg username "$new_username" \
+    --arg password "$new_password" \
+    --arg logged_in_via "$new_logged_in_via" \
+    --arg linked_email "$new_linked_email" \
+    --arg recovery_email "$new_recovery_email" \
+    --arg added "$timestamp" \
+    '{website: $website, email: $email, username: $username, password: $password, logged_in_via: $logged_in_via, linked_email: $linked_email, recovery_email: $recovery_email, added: $added}' \
+  | jq 'walk(if type == "string" and . == "" then empty else . end)') # Remove empty fields
 
   # Update the entry in the JSON array
   local updated_entries_json
@@ -726,8 +845,8 @@ edit_entry() {
   local confirm_update
   echo -e "\n$PROMPT_REVIEW_UPDATED_ENTRY"
   echo -e "  🌐 Website      : ${BRIGHT_BOLD}$new_website${RESET}"
-  if [[ -n "$actual_logged_in_via" ]]; then
-    echo -e "  🔗 Logged in via: ${BRIGHT_BOLD}$actual_logged_in_via${RESET}"
+  if [[ -n "$new_logged_in_via" ]]; then
+    echo -e "  🔗 Logged in via: ${BRIGHT_BOLD}$new_logged_in_via${RESET}"
     [[ -n "$new_linked_email" ]] && echo -e "  📧 Linked Email : ${BRIGHT_BOLD}$new_linked_email${RESET}"
     [[ -n "$new_username" ]] && echo -e "  👤 Username     : ${BRIGHT_BOLD}$new_username${RESET}"
   elif [[ -n "$new_email" ]]; then

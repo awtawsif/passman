@@ -89,7 +89,7 @@ ERROR_INVALID_ENTRY_NUMBER="${NEON_RED}🚫 Invalid number. Please enter a numbe
 PROMPT_CURRENTLY_SELECTED_ENTRY="
 ${CYBER_BLUE}${BRIGHT_BOLD}✍️ Now Editing Entry #%d${RESET}"
 PROMPT_EDITING_HINT="${CYBER_BLUE}For each field, provide a new value or press Enter to keep the current one.${RESET}"
-PROMPT_UPDATE_WEBSITE_NAME="🌐 Website/Service Name ${TEXT_CYAN}(current: ${BRIGHT_BOLD}%s${TEXT_CYAN}):${RESET} "
+PROMPT_UPDATE_WEBSITE_NAME="🌐 Website/Service Name"
 PROMPT_KEEPING_CURRENT_WEBSITE="${AQUA}✓ Keeping current website: ${BRIGHT_BOLD}%s${RESET}
 "
 PROMPT_UPDATE_LOGGED_IN_VIA="🔗 Login via"
@@ -114,6 +114,15 @@ ${CYBER_BLUE}${BRIGHT_BOLD}🔎 REVIEW UPDATED ENTRY${RESET}"
 PROMPT_CONFIRM_SAVE_CHANGES="Do you want to ${LIME_GREEN}${BRIGHT_BOLD}SAVE${RESET} these changes? [${LIME_GREEN}Y${RESET}/${NEON_RED}n${RESET}]: "
 PROMPT_CHANGES_NOT_SAVED="${AQUA}ℹ️ Changes were not saved. Returning to main menu.${RESET}"
 SUCCESS_ENTRY_UPDATED_SAVED="${LIME_GREEN}✅ Entry successfully updated and saved!${RESET}"
+PROMPT_SELECT_FIELD_TO_EDIT="${AQUA}Select a field to edit, or 'Q' to finish editing:${RESET}"
+PROMPT_ENTER_FIELD_NUMBER_TO_EDIT="Enter field number to edit: "
+ERROR_INVALID_FIELD_NUMBER="${NEON_RED}🚫 Invalid field number. Please enter a valid number or 'Q'.${RESET}"
+WARNING_CANNOT_SET_EMAIL_WITH_SERVICE="${ELECTRIC_YELLOW}⚠️ Cannot set Email when 'Logged in via' service is active.${RESET}"
+WARNING_CANNOT_SET_LINKED_EMAIL_WITHOUT_SERVICE="${ELECTRIC_YELLOW}⚠️ Cannot set Linked Email without 'Logged in via' service.${RESET}"
+PROMPT_CURRENT_ENTRY_STATUS="${CYBER_BLUE}${BRIGHT_BOLD}Current Entry Status:${RESET}"
+PROMPT_EDITING_FIELD="${AQUA}✏️ Editing %s:${RESET}" # Added missing prompt
+PROMPT_EDIT_ANOTHER_FIELD="Edit another field? [${LIME_GREEN}Y${RESET}/${NEON_RED}n${RESET}]: "
+
 
 # Remove Entry
 PROMPT_REMOVE_ENTRY_TITLE="
