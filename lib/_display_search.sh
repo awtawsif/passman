@@ -54,7 +54,7 @@ search_entries() {
       idx=$(echo "$idx" | xargs) # trim spaces
       if [[ "$idx" =~ ^[1-6]$ ]]; then
         prompt="${field_prompts[$((idx-1))]}"
-        read -rp "$(printf "${ELECTRIC_YELLOW}%s: ${RESET}" "$prompt")" value
+        read -rp "$(printf "$prompt: ${RESET}")" value
         value=$(trim "$value")
         eval "${field_vars[$((idx-1))]}=\"\$value\""
         echo ""
