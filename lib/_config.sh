@@ -127,7 +127,6 @@ manage_settings() {
     echo -e "$(printf "$PROMPT_SETTING_INCLUDE_NUMBERS" "$DEFAULT_PASSWORD_NUMBERS")"
     echo -e "$(printf "$PROMPT_SETTING_INCLUDE_SYMBOLS" "$DEFAULT_PASSWORD_SYMBOLS")"
     echo -e "$(printf "$PROMPT_SETTING_CLIPBOARD_DELAY" "$CLIPBOARD_CLEAR_DELAY")"
-    echo -e "$(printf "$PROMPT_SETTING_DATA_FILE_LOCATION" "$SAVE_LOCATION")"
     echo -e "$(printf "$PROMPT_SETTING_SEARCH_MODE" "$DEFAULT_SEARCH_MODE")"
     echo -e "$(printf "$PROMPT_SETTING_DEFAULT_EMAIL" "${DEFAULT_EMAIL:-<empty>}")" # Display <empty> if not set
     echo -e "$(printf "$PROMPT_SETTING_DEFAULT_SERVICE" "${DEFAULT_SERVICE:-<empty>}")" # Display <empty> if not set
@@ -227,25 +226,7 @@ manage_settings() {
           fi
         done
         ;;
-      6) # Default Data File Location
-        local new_save_location
-        while true; do
-          read -rp "$(printf "${ELECTRIC_YELLOW}${PROMPT_ENTER_NEW_SAVE_LOCATION}${RESET}" "$SAVE_LOCATION")" new_save_location_input
-          new_save_location=$(trim "$new_save_location_input")
-          echo "" # Extra space
-          if [[ -d "$new_save_location" ]]; then
-            SAVE_LOCATION="$new_save_location"
-            ENC_JSON_FILE="${SAVE_LOCATION}/${DEFAULT_ENC_FILENAME}" # Update global ENC_JSON_FILE immediately
-            echo -e "$(printf "$SUCCESS_DATA_FILE_LOCATION_UPDATED" "$SAVE_LOCATION")"
-            echo -e "$(printf "$INFO_ENCRYPTED_FILE_LOCATION" "$ENC_JSON_FILE")"
-            break
-          else
-            echo -e "$ERROR_DIRECTORY_NOT_FOUND"
-            echo "" # Extra space
-          fi
-        done
-        ;;
-      7) # Default Search Mode
+      6) # Default Search Mode
         local new_search_mode
         while true; do
           read -rp "$(printf "${ELECTRIC_YELLOW}${PROMPT_ENTER_NEW_SEARCH_MODE}${RESET}" "$DEFAULT_SEARCH_MODE") " new_search_mode_input
@@ -262,7 +243,7 @@ manage_settings() {
           fi
         done
         ;;
-      8) # Default Email
+      7) # Default Email
         local new_default_email
         while true; do
           read -rp "$(printf "${ELECTRIC_YELLOW}${PROMPT_ENTER_NEW_DEFAULT_EMAIL}${RESET}" "${DEFAULT_EMAIL:-<empty>}") " new_default_email_input
@@ -278,7 +259,7 @@ manage_settings() {
           break
         done
         ;;
-      9) # Default Service
+      8) # Default Service
         local new_default_service
         while true; do
           read -rp "$(printf "${ELECTRIC_YELLOW}${PROMPT_ENTER_NEW_DEFAULT_SERVICE}${RESET}" "${DEFAULT_SERVICE:-<empty>}") " new_default_service_input

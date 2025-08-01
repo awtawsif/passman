@@ -112,90 +112,128 @@ write_encrypted_file() {
   fi
 }
 
-# Prompts the user to load an external encrypted credentials file.
+# Prompts the user to load an external encrypted credentials file from a directory.
+# If the file doesn't exist in the directory, it offers to create it.
 # On success, updates global ENC_JSON_FILE, MASTER_PASSWORD, and CREDENTIALS_DATA.
 # Returns:
 #   0 on success, 1 on cancellation or failure.
 load_external_credentials() {
   clear_screen
   echo -e "$PROMPT_LOAD_EXTERNAL_TITLE"
-  echo -e "$PROMPT_LOAD_EXTERNAL_HINT"
+  echo -e "$PROMPT_LOAD_EXTERNAL_DIR_HINT"
   echo -e "$PROMPT_LOAD_EXTERNAL_CANCEL_HINT"
 
-  local external_file_path
+  local external_dir_path_input
+  local external_dir_path
   while true; do
-    read -rp "$(printf "$PROMPT_ENTER_EXTERNAL_FILE_PATH")" external_file_path_input
-    external_file_path=$(trim "$external_file_path_input")
+    read -rp "$(printf "$PROMPT_ENTER_DIR_PATH_WITH_PWD" "$(pwd)")" external_dir_path_input
+    external_dir_path_input=$(trim "$external_dir_path_input")
     echo "" # Extra space
 
     local lower_input
-    lower_input=$(echo "$external_file_path" | tr '[:upper:]' '[:lower:]')
+    lower_input=$(echo "$external_dir_path_input" | tr '[:upper:]' '[:lower:]')
     if [[ "$lower_input" == "c" ]]; then
       echo -e "$PROMPT_OPERATION_CANCELLED_RETURN_MENU"
       pause
       return 1 # Indicate cancellation
     fi
 
-    if [[ -f "$external_file_path" ]]; then
+    # Resolve the path to an absolute path. Handles `.` `..` and `~`
+    # The `-m` flag ensures that it doesn't fail if the path doesn't exist yet.
+    external_dir_path=$(realpath -m -- "$external_dir_path_input")
+
+    # Now check if the resolved path is a directory
+    # We use the input path for the check to give a more intuitive error message
+    if [[ -d "$external_dir_path_input" ]]; then
       break
     else
-      printf "${ERROR_FILE_NOT_FOUND}\n" "$external_file_path"
+      # If it's not a directory, maybe the user wants to create it.
+      # For now, we require an existing directory.
+      printf "${ERROR_DIR_NOT_FOUND}\n" "$external_dir_path_input"
       echo "" # Extra space
     fi
   done
 
-  local external_file_master_pass
-  # Prompt for the master password specific to the external file
-  get_master_password "$(printf "$PROMPT_ENTER_EXTERNAL_FILE_MASTER_PASS" "$external_file_path")" external_file_master_pass "false"
+  local external_file_path="${external_dir_path}/${DEFAULT_ENC_FILENAME}"
+  local session_master_password=""
+  local success="false"
 
-  if [[ -z "$external_file_master_pass" ]]; then
-    echo -e "$ERROR_EXTERNAL_MASTER_PASSWORD_NOT_PROVIDED"
-    pause
-    return 1
+  if [[ -f "$external_file_path" ]]; then
+    # --- Handle Existing File ---
+    local external_file_master_pass
+    get_master_password "$(printf "$PROMPT_ENTER_EXTERNAL_FILE_MASTER_PASS" "$external_file_path")" external_file_master_pass "false"
+
+    if [[ -z "$external_file_master_pass" ]]; then
+      echo -e "$ERROR_EXTERNAL_MASTER_PASSWORD_NOT_PROVIDED"
+      pause
+      return 1
+    fi
+
+    printf "${INFO_ATTEMPTING_DECRYPT_EXTERNAL}\n" "$external_file_path"
+    if read_encrypted_file "$external_file_path" "$external_file_master_pass"; then
+      printf "${SUCCESS_EXTERNAL_FILE_LOADED}\n" "$external_file_path"
+      session_master_password="$external_file_master_pass"
+      success="true"
+    else
+      echo -e "$ERROR_FAILED_LOAD_EXTERNAL_CREDENTIALS"
+      pause
+      return 1
+    fi
+  else
+    # --- Handle New File ---
+    printf "${WARNING_FILE_NOT_FOUND_IN_DIR}\n" "$external_file_path"
+    echo -e "$INFO_CREATING_NEW_FILE"
+    echo -e "$WARNING_NO_RECOVERY"
+
+    get_master_password "$PROMPT_SET_NEW_FILE_MASTER_PASSWORD" session_master_password "true" # Prompt for confirmation
+
+    if [[ -z "$session_master_password" ]]; then
+      echo -e "$ERROR_MASTER_PASSWORD_NOT_SET_EXIT" # Reusing existing prompt
+      pause
+      return 1
+    fi
+
+    CREDENTIALS_DATA="[]"
+    printf "${SUCCESS_NEW_FILE_INITIALIZED}\n" "$external_file_path"
+    success="true"
   fi
 
-  printf "${INFO_ATTEMPTING_DECRYPT_EXTERNAL}\n" "$external_file_path"
-  if read_encrypted_file "$external_file_path" "$external_file_master_pass"; then
-    printf "${SUCCESS_EXTERNAL_FILE_LOADED}\n" "$external_file_path"
-
-    local make_permanent
+  if [[ "$success" == "true" ]]; then
+    # --- Ask to make permanent (common logic for new and existing files) ---
+    local make_permanent_choice="n" # Default to no
     while true; do
       read -rp "$(printf "$PROMPT_MAKE_EXTERNAL_FILE_DEFAULT")" make_permanent_input
-      make_permanent=$(trim "${make_permanent_input:-n}") # Default to 'n' (temporary)
+      make_permanent_input=$(trim "${make_permanent_input:-n}") # Default to 'n' (temporary)
       echo "" # Extra space
-      local lower_input=$(echo "$make_permanent" | tr '[:upper:]' '[:lower:]')
+      local lower_input=$(echo "$make_permanent_input" | tr '[:upper:]' '[:lower:]')
+
       if [[ "$lower_input" == "c" ]]; then
-        echo -e "$INFO_EXTERNAL_FILE_LOADED_TEMPORARILY"
-        # Still return 0 as file was loaded, just not permanently set
-        return 0
+        make_permanent_choice="n" # Treat cancel as temporary
+        break
       fi
-      if [[ "$make_permanent" =~ ^[yYnN]$ ]]; then
+      if [[ "$make_permanent_input" =~ ^[yYnN]$ ]]; then
+        make_permanent_choice=$(echo "$make_permanent_input" | tr '[:upper:]' '[:lower:]')
         break
       fi
       echo -e "$ERROR_INVALID_YES_NO_INPUT_EXTERNAL"
       echo "" # Extra space
     done
 
-    if [[ "$make_permanent" =~ ^[yY]$ ]]; then
-      # Call function from _config.sh to update the save location in the config file
-      update_save_location_in_config "$(dirname "$external_file_path")"
+    if [[ "$make_permanent_choice" == "y" ]]; then
+      update_save_location_in_config "$external_dir_path"
       echo -e "$SUCCESS_EXTERNAL_FILE_SET_DEFAULT"
     else
       echo -e "$INFO_EXTERNAL_FILE_LOADED_TEMPORARILY"
     fi
 
-    # Update global variables in passman.sh's scope
-    # This is done by directly assigning to the global variables
-    # which are sourced by passman.sh.
-    # The calling script (passman.sh) will now rely on these globals directly.
+    # --- Update global state for the new session ---
     ENC_JSON_FILE="$external_file_path"
-    MASTER_PASSWORD="$external_file_master_pass"
-    IS_AUTHENTICATED="true" # Mark as authenticated with the new file
+    MASTER_PASSWORD="$session_master_password"
+    IS_AUTHENTICATED="true"
     pause
     return 0
   else
-    echo -e "$ERROR_FAILED_LOAD_EXTERNAL_CREDENTIALS"
-    pause
+    # This case should not be hit with the current logic, but is a safeguard.
     return 1
   fi
 }
