@@ -1,0 +1,7 @@
+post_install() {
+    echo "--------------------------------------------------"
+    echo " Passman has been successfully installed."
+    echo " You can now run the application by typing:"
+    echo " passman"
+    echo "--------------------------------------------------"
+}
