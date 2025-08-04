@@ -19,24 +19,16 @@ A robust and user-friendly command-line password manager designed for secure sto
 
 ## Installation on Arch Linux
 
-This project can be installed as a package on Arch Linux.
+This project can be installed as a package on Arch Linux using an automated script.
 
 ### Prerequisites
 
-Ensure you have the necessary dependencies installed on your system.
-
-*   **bash:** (usually pre-installed on Linux/macOS)
-*   **jq:** A lightweight and flexible command-line JSON processor.
-*   **openssl:** A robust, commercial-grade, and full-featured toolkit for the Transport Layer Security (TLS) and Secure Sockets Layer (SSL) protocols and a rich cryptography library.
-*   **git:** (for cloning the repository)
-*   **xclip:** (for copying data)
-
-You can install them using `pacman`:
+Before running the installation script, ensure you have `git` installed to clone the repository.
 ```bash
-sudo pacman -Syu --needed bash jq openssl git xclip
+sudo pacman -Syu --needed git
 ```
 
-### Building from Source
+### Easy Installation
 
 1.  **Clone the repository:**
     ```bash
@@ -44,17 +36,13 @@ sudo pacman -Syu --needed bash jq openssl git xclip
     cd passman
     ```
 
-2.  **Create the source tarball:**
-    The `PKGBUILD` is configured to use a source tarball. Create it with the following command:
+2.  **Run the installation script:**
+    This script will automatically check for all other dependencies (like `jq`, `openssl`, `xclip`, and `makepkg`), create the source tarball, and build and install the package.
     ```bash
-    tar -czf passman-1.0.0.tar.gz --exclude='.git' --exclude='.gitignore' --exclude='*.pkg.tar.zst' .
+    chmod +x install.sh
+    ./install.sh
     ```
-
-3.  **Build and install the package:**
-    Use `makepkg` to build and install the package. The `-si` flags will automatically install the dependencies and the package itself.
-    ```bash
-    makepkg -si
-    ```
+    The script will prompt you for your password to install the package and any missing dependencies.
 
 ## Usage
 
@@ -74,7 +62,7 @@ Upon the first run, you will be prompted to set a new master password. Remember 
 *   **Remove entry:** Permanently delete a credential entry from your secure storage.
 *   **Quit:** Exit the application. Your data will be securely locked.
 *   **Change master password:** Update your master password.
-*   **Manage Settings:** Configure application settings, including default password generation criteria and data file location.
+*   **Manage Settings:** Configure application settings, including default password generation criteria.
 
 ## File Structure
 

@@ -1,4 +1,4 @@
-# Maintainer: Tawsif Ausaf <awtawsif@gmail.com>
+# Maintainer: Tawsif <awtawsif@gmail.com>
 
 pkgname=passman
 pkgver=1.0.0

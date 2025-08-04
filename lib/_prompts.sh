@@ -183,7 +183,7 @@ PROMPT_ENTER_ENTRY_NUMBER_TO_COPY="Enter entry number [1-%d] to copy from ${TEXT
 # --- Configuration Prompts (from _config.sh) ---
 PROMPT_MANAGE_SETTINGS_TITLE="
 ${VIOLET}${BRIGHT_BOLD}⚙️ MANAGE SETTINGS${RESET}"
-PROMPT_MANAGE_SETTINGS_HINT="${AQUA}Configure password generator defaults, data file location, and more.${RESET}
+PROMPT_MANAGE_SETTINGS_HINT="${AQUA}Configure password generator defaults, and more.${RESET}
 "
 PROMPT_CURRENT_SETTINGS="${BRIGHT_BOLD}Current Settings:${RESET}"
 PROMPT_SETTING_PASSWORD_LENGTH="  ${AQUA}${BRIGHT_BOLD}1)${RESET} Default Password Length: ${BRIGHT_BOLD}%s${RESET}"
