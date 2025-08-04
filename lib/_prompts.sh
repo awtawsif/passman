@@ -4,7 +4,7 @@
 # Modernized for better readability and a clean, colorful interface.
 
 # Source color definitions to use in prompts
-source "$(dirname "$0")/lib/_colors.sh"
+source "${LIB_DIR}/_colors.sh"
 
 # --- Master Password Change Prompts (from _change_master.sh) ---
 PROMPT_CHANGE_MASTER_TITLE="
@@ -30,7 +30,6 @@ PROMPT_PRESS_ENTER_TO_CONTINUE="
 ${TEXT_CYAN}Press ${BRIGHT_BOLD}[Enter]${TEXT_CYAN} to continue...${RESET}"
 PROMPT_SPINNER_COMPLETE_MESSAGE="${LIME_GREEN}✓ %s complete!${RESET}         
 "
-PROMPT_MASTER_PASSWORD_INPUT_GENERIC="${ELECTRIC_YELLOW}%s${RESET}" # Placeholder for dynamic prompt
 ERROR_MASTER_PASSWORD_EMPTY="${NEON_RED}🚫 Master password cannot be empty. Please try again.${RESET}"
 PROMPT_CONFIRM_MASTER_PASSWORD="${ELECTRIC_YELLOW}Confirm your master password: ${RESET}"
 ERROR_PASSWORDS_DO_NOT_MATCH="${NEON_RED}🚫 Passwords do not match. Please try again.${RESET}"
@@ -184,7 +183,7 @@ PROMPT_ENTER_ENTRY_NUMBER_TO_COPY="Enter entry number [1-%d] to copy from ${TEXT
 # --- Configuration Prompts (from _config.sh) ---
 PROMPT_MANAGE_SETTINGS_TITLE="
 ${VIOLET}${BRIGHT_BOLD}⚙️ MANAGE SETTINGS${RESET}"
-PROMPT_MANAGE_SETTINGS_HINT="${AQUA}Configure password generator defaults, data file location, and more.${RESET}
+PROMPT_MANAGE_SETTINGS_HINT="${AQUA}Configure password generator defaults, and more.${RESET}
 "
 PROMPT_CURRENT_SETTINGS="${BRIGHT_BOLD}Current Settings:${RESET}"
 PROMPT_SETTING_PASSWORD_LENGTH="  ${AQUA}${BRIGHT_BOLD}1)${RESET} Default Password Length: ${BRIGHT_BOLD}%s${RESET}"
@@ -192,14 +191,13 @@ PROMPT_SETTING_INCLUDE_UPPERCASE="  ${AQUA}${BRIGHT_BOLD}2)${RESET} Include Uppe
 PROMPT_SETTING_INCLUDE_NUMBERS="  ${AQUA}${BRIGHT_BOLD}3)${RESET} Include Numbers: ${BRIGHT_BOLD}%s${RESET}"
 PROMPT_SETTING_INCLUDE_SYMBOLS="  ${AQUA}${BRIGHT_BOLD}4)${RESET} Include Symbols: ${BRIGHT_BOLD}%s${RESET}"
 PROMPT_SETTING_CLIPBOARD_DELAY="  ${AQUA}${BRIGHT_BOLD}5)${RESET} Clipboard Clear Delay (sec): ${BRIGHT_BOLD}%s${RESET}"
-PROMPT_SETTING_DATA_FILE_LOCATION="  ${AQUA}${BRIGHT_BOLD}6)${RESET} Data File Location: ${BRIGHT_BOLD}%s${RESET}"
-PROMPT_SETTING_SEARCH_MODE="  ${AQUA}${BRIGHT_BOLD}7)${RESET} Default Search Mode: ${BRIGHT_BOLD}%s${RESET} ('and'/'or')"
-PROMPT_SETTING_DEFAULT_EMAIL="  ${AQUA}${BRIGHT_BOLD}8)${RESET} Default Email: ${BRIGHT_BOLD}%s${RESET}"
-PROMPT_SETTING_DEFAULT_SERVICE="  ${AQUA}${BRIGHT_BOLD}9)${RESET} Default Service: ${BRIGHT_BOLD}%s${RESET}"
+PROMPT_SETTING_SEARCH_MODE="  ${AQUA}${BRIGHT_BOLD}6)${RESET} Default Search Mode: ${BRIGHT_BOLD}%s${RESET} ('and'/'or')"
+PROMPT_SETTING_DEFAULT_EMAIL="  ${AQUA}${BRIGHT_BOLD}7)${RESET} Default Email: ${BRIGHT_BOLD}%s${RESET}"
+PROMPT_SETTING_DEFAULT_SERVICE="  ${AQUA}${BRIGHT_BOLD}8)${RESET} Default Service: ${BRIGHT_BOLD}%s${RESET}"
 PROMPT_SETTING_BACK_TO_MAIN_MENU="  ${AQUA}${BRIGHT_BOLD}Q)${RESET} Back to Main Menu${RESET}
 "
 PROMPT_ENTER_SETTING_CHOICE="Enter setting number to change, or 'Q' to quit: "
-ERROR_INVALID_OPTION_SETTINGS="${NEON_RED}❌ Invalid option. Please enter a number from 1-9 or 'Q'.${RESET}"
+ERROR_INVALID_OPTION_SETTINGS="${NEON_RED}❌ Invalid option. Please enter a number from 1-8 or 'Q'.${RESET}"
 PROMPT_ENTER_NEW_PASSWORD_LENGTH="Enter new default password length ${TEXT_CYAN}(current: ${BRIGHT_BOLD}%s${TEXT_CYAN}, min 1):${RESET} "
 ERROR_INVALID_LENGTH_POSITIVE_NUMBER="${NEON_RED}🚫 Invalid length. Please enter a positive number.${RESET}"
 SUCCESS_PASSWORD_LENGTH_UPDATED="${LIME_GREEN}✅ Default password length updated to ${BRIGHT_BOLD}%s${RESET}.${RESET}"
@@ -212,10 +210,6 @@ SUCCESS_INCLUDE_SYMBOLS_UPDATED="${LIME_GREEN}✅ 'Include symbols' updated to $
 PROMPT_ENTER_NEW_CLIPBOARD_DELAY="Enter new clipboard clear delay in seconds ${TEXT_CYAN}(current: ${BRIGHT_BOLD}%s${TEXT_CYAN}, 0=disable):${RESET} "
 ERROR_INVALID_DELAY_NON_NEGATIVE="${NEON_RED}🚫 Invalid delay. Please enter a non-negative number.${RESET}"
 SUCCESS_CLIPBOARD_DELAY_UPDATED="${LIME_GREEN}✅ Clipboard clear delay updated to ${BRIGHT_BOLD}%s${RESET} seconds.${RESET}"
-PROMPT_ENTER_NEW_SAVE_LOCATION="Enter new default data file directory ${TEXT_CYAN}(current: ${BRIGHT_BOLD}%s${TEXT_CYAN}):${RESET} "
-ERROR_DIRECTORY_NOT_FOUND="${NEON_RED}🚫 Directory not found. Please enter a valid directory path.${RESET}"
-SUCCESS_DATA_FILE_LOCATION_UPDATED="${LIME_GREEN}✅ Default data file location updated to ${BRIGHT_BOLD}%s${RESET}.${RESET}"
-INFO_ENCRYPTED_FILE_LOCATION="${ELECTRIC_YELLOW}ℹ️ Encrypted file will now be saved/loaded from: ${BRIGHT_BOLD}%s${RESET}"
 PROMPT_ENTER_NEW_SEARCH_MODE="Enter new default search mode ${TEXT_CYAN}(current: ${BRIGHT_BOLD}%s${TEXT_CYAN}, 'and' or 'or'):${RESET} "
 ERROR_INVALID_SEARCH_MODE="${NEON_RED}🚫 Invalid input. Please enter 'and' or 'or'.${RESET}"
 SUCCESS_SEARCH_MODE_UPDATED="${LIME_GREEN}✅ Default search mode updated to ${BRIGHT_BOLD}%s${RESET}.${RESET}"
@@ -251,9 +245,17 @@ ERROR_FAILED_TO_MOVE_ENCRYPTED_DATA="${NEON_RED}❌ Critical: Failed to move enc
 PROMPT_LOAD_EXTERNAL_TITLE="
 ${VIOLET}${BRIGHT_BOLD}📂 LOAD EXTERNAL CREDENTIALS FILE${RESET}"
 PROMPT_LOAD_EXTERNAL_HINT="${AQUA}💡 Enter the full path to the encrypted .json.enc file you wish to load.${RESET}"
+PROMPT_LOAD_EXTERNAL_DIR_HINT="${AQUA}Enter the directory path where your credentials file is or should be created.${RESET}"
 PROMPT_LOAD_EXTERNAL_CANCEL_HINT="${AQUA}Type ${BRIGHT_BOLD}'c'${AQUA} to cancel.${RESET}
 "
 PROMPT_ENTER_EXTERNAL_FILE_PATH="${ELECTRIC_YELLOW}📁 Path to encrypted file: ${RESET}"
+PROMPT_ENTER_DIR_PATH_WITH_PWD="${AQUA}Current directory: ${BRIGHT_BOLD}%s${RESET}\n${ELECTRIC_YELLOW}Enter directory path (or 'c' to cancel): ${RESET}"
+PROMPT_ENTER_DIR_PATH="${ELECTRIC_YELLOW}Enter directory path (or 'c' to cancel): ${RESET}"
+ERROR_DIR_NOT_FOUND="${NEON_RED}Error: Directory not found: '%s'. Please enter a valid directory path.${RESET}"
+WARNING_FILE_NOT_FOUND_IN_DIR="${ELECTRIC_YELLOW}Warning: Credentials file not found at '%s'.${RESET}"
+INFO_CREATING_NEW_FILE="${AQUA}A new credentials file will be created.${RESET}"
+PROMPT_SET_NEW_FILE_MASTER_PASSWORD="Set a master password for the new file: "
+SUCCESS_NEW_FILE_INITIALIZED="${LIME_GREEN}✅ New credentials file initialized successfully at '%s'.${RESET}"
 ERROR_FILE_NOT_FOUND="${NEON_RED}❌ File not found at '${BRIGHT_BOLD}%s${NEON_RED}'. Please check the path or type ${AQUA}'c'${NEON_RED} to cancel.${RESET}"
 PROMPT_ENTER_EXTERNAL_FILE_MASTER_PASS="🔑 Enter master password for '${BRIGHT_BOLD}%s${ELECTRIC_YELLOW}': ${RESET}"
 ERROR_EXTERNAL_MASTER_PASSWORD_NOT_PROVIDED="${NEON_RED}🚫 Master password not provided. Aborting load.${RESET}"

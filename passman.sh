@@ -15,19 +15,24 @@ set -u
 set -o pipefail
 
 # --- Source Library Files ---
-# Ensure the current directory is added to the PATH for sourcing.
-# This makes sure the script can find the 'lib' directory regardless of where it's run from.
-SCRIPT_DIR="$(dirname "$0")"
-source "${SCRIPT_DIR}/lib/_colors.sh"            # Defines color codes
-source "${SCRIPT_DIR}/lib/_utils.sh"             # General utility functions
-source "${SCRIPT_DIR}/lib/_crypto.sh"            # Encryption/Decryption and cleanup logic
-source "${SCRIPT_DIR}/lib/_data_storage.sh"      # Load/Save JSON data
-source "${SCRIPT_DIR}/lib/_password_generator.sh" # Password generation logic
-source "${SCRIPT_DIR}/lib/_crud_operations.sh"   # Add, Edit, Remove operations
-source "${SCRIPT_DIR}/lib/_display_search.sh"    # Display and Search functions
-source "${SCRIPT_DIR}/lib/_change_master.sh"     # Change master password logic
-source "${SCRIPT_DIR}/lib/_config.sh"            # Configuration management (new)
-source "${SCRIPT_DIR}/lib/_prompts.sh"           # All user-facing prompt strings (new)
+# Determine the correct lib directory based on installation
+if [ -d "/usr/lib/passman" ]; then
+    export LIB_DIR="/usr/lib/passman"
+else
+    # Fallback to the script's directory for development/local execution
+    export LIB_DIR="$(dirname "$0")/lib"
+fi
+
+source "${LIB_DIR}/_colors.sh"            # Defines color codes
+source "${LIB_DIR}/_utils.sh"             # General utility functions
+source "${LIB_DIR}/_crypto.sh"            # Encryption/Decryption and cleanup logic
+source "${LIB_DIR}/_data_storage.sh"      # Load/Save JSON data
+source "${LIB_DIR}/_password_generator.sh" # Password generation logic
+source "${LIB_DIR}/_crud_operations.sh"   # Add, Edit, Remove operations
+source "${LIB_DIR}/_display_search.sh"    # Display and Search functions
+source "${LIB_DIR}/_change_master.sh"     # Change master password logic
+source "${LIB_DIR}/_config.sh"            # Configuration management (new)
+source "${LIB_DIR}/_prompts.sh"           # All user-facing prompt strings (new)
 
 # --- Global Variables (Managed by main_loop and cleanup_on_exit) ---
 # Path to the configuration directory (e.g., where passman.conf is stored)

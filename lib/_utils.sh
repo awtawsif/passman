@@ -71,7 +71,7 @@ get_master_password() {
   local confirm_password="$3"
 
   while true; do
-    printf "$PROMPT_MASTER_PASSWORD_INPUT_GENERIC" "$prompt_msg"
+    printf "$prompt_msg"
     read -s -r master_pass # Read password silently
     echo
 
