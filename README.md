@@ -17,64 +17,49 @@ A robust and user-friendly command-line password manager designed for secure sto
 *   **Master Password Management:** Easily change your master password securely.
 *   **Secure Cleanup:** Automatically handles the secure deletion of temporary decrypted files upon exit to prevent data residue.
 
-## Installation
+## Installation on Arch Linux
 
-Before running the password manager, ensure you have the necessary dependencies installed on your system.
+This project can be installed as a package on Arch Linux.
 
 ### Prerequisites
+
+Ensure you have the necessary dependencies installed on your system.
 
 *   **bash:** (usually pre-installed on Linux/macOS)
 *   **jq:** A lightweight and flexible command-line JSON processor.
 *   **openssl:** A robust, commercial-grade, and full-featured toolkit for the Transport Layer Security (TLS) and Secure Sockets Layer (SSL) protocols and a rich cryptography library.
+*   **git:** (for cloning the repository)
 
-### Install Dependencies
-
-**Debian/Ubuntu:**
-
+You can install them using `pacman`:
 ```bash
-sudo apt update
-sudo apt install jq openssl
+sudo pacman -Syu --needed bash jq openssl git
 ```
 
-**Fedora:**
-
-```bash
-sudo dnf install jq openssl
-```
-
-**Arch Linux:**
-
-```bash
-sudo pacman -Sy jq openssl
-```
-
-**macOS (using Homebrew):**
-
-```bash
-brew install jq openssl
-```
-
-### Setup
+### Building from Source
 
 1.  **Clone the repository:**
-
     ```bash
-    git clone https://github.com/awtawsif/passman.git/
+    git clone https://github.com/awtawsif/passman.git
     cd passman
     ```
 
-2.  **Make the main script executable:**
-
+2.  **Create the source tarball:**
+    The `PKGBUILD` is configured to use a source tarball. Create it with the following command:
     ```bash
-    chmod +x passman.sh
+    tar -czf passman-1.0.0.tar.gz --exclude='.git' --exclude='.gitignore' --exclude='*.pkg.tar.zst' .
+    ```
+
+3.  **Build and install the package:**
+    Use `makepkg` to build and install the package. The `-si` flags will automatically install the dependencies and the package itself.
+    ```bash
+    makepkg -si
     ```
 
 ## Usage
 
-To start the password manager, run the `passman.sh` script from your terminal:
-
+Once installed, you can run the application from anywhere in your terminal:
 ```bash
-./passman.sh
+passman
 ```
 
 Upon the first run, you will be prompted to set a new master password. Remember this password, as it's crucial for accessing your stored credentials.
