@@ -4,7 +4,7 @@
 # Modernized for better readability and a clean, colorful interface.
 
 # Source color definitions to use in prompts
-source "$(dirname "$0")/lib/_colors.sh"
+source "${LIB_DIR}/_colors.sh"
 
 # --- Master Password Change Prompts (from _change_master.sh) ---
 PROMPT_CHANGE_MASTER_TITLE="

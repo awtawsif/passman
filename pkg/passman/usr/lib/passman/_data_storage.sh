@@ -21,7 +21,7 @@ set -o pipefail
 # - IS_AUTHENTICATED: Flag to indicate if the session is authenticated.
 
 # Source prompt definitions
-source "$(dirname "$0")/lib/_prompts.sh"
+source "${LIB_DIR}/_prompts.sh"
 
 # Loads plaintext JSON entries from CREDENTIALS_DATA.
 # Returns:

@@ -17,10 +17,10 @@ set -o pipefail
 # --- Source Library Files ---
 # Determine the correct lib directory based on installation
 if [ -d "/usr/lib/passman" ]; then
-    LIB_DIR="/usr/lib/passman"
+    export LIB_DIR="/usr/lib/passman"
 else
     # Fallback to the script's directory for development/local execution
-    LIB_DIR="$(dirname "$0")/lib"
+    export LIB_DIR="$(dirname "$0")/lib"
 fi
 
 source "${LIB_DIR}/_colors.sh"            # Defines color codes
