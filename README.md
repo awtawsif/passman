@@ -29,10 +29,11 @@ Ensure you have the necessary dependencies installed on your system.
 *   **jq:** A lightweight and flexible command-line JSON processor.
 *   **openssl:** A robust, commercial-grade, and full-featured toolkit for the Transport Layer Security (TLS) and Secure Sockets Layer (SSL) protocols and a rich cryptography library.
 *   **git:** (for cloning the repository)
+*   **xclip:** (for copying data)
 
 You can install them using `pacman`:
 ```bash
-sudo pacman -Syu --needed bash jq openssl git
+sudo pacman -Syu --needed bash jq openssl git xclip
 ```
 
 ### Building from Source
