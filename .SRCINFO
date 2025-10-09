@@ -9,6 +9,8 @@ pkgbase = passman
 	depends = bash
 	depends = jq
 	depends = openssl
+	depends = wl-clipboard
+	depends = xclip
 	source = passman-1.0.0.tar.gz
 	sha256sums = SKIP
 

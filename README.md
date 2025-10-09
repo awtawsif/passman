@@ -37,7 +37,7 @@ sudo pacman -Syu --needed git
     ```
 
 2.  **Run the installation script:**
-    This script will automatically check for all other dependencies (like `jq`, `openssl`, `xclip`, and `makepkg`), create the source tarball, and build and install the package.
+    This script will automatically check for all other dependencies (like `jq`, `openssl`, `xclip`, `wl-clipboard`, and `makepkg`), create the source tarball, and build and install the package.
     ```bash
     chmod +x install.sh
     ./install.sh

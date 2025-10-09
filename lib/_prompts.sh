@@ -37,7 +37,7 @@ PROMPT_OPTIONAL_INPUT_WITH_REMOVE="${ELECTRIC_YELLOW}%s ${TEXT_CYAN}(current: ${
 PROMPT_FIELD_WILL_BE_REMOVED="${AQUA}Field will be removed.${RESET}"
 PROMPT_MANDATORY_INPUT_CONDITIONAL="${ELECTRIC_YELLOW}%s ${TEXT_CYAN}(current: ${BRIGHT_BOLD}%s${TEXT_CYAN}, cannot be empty):${RESET} "
 ERROR_FIELD_CANNOT_BE_EMPTY="${NEON_RED}🚫 This field cannot be empty. Provide a value or type ${AQUA}'c'${NEON_RED} to cancel.${RESET}"
-WARNING_NO_CLIPBOARD_UTILITY="${ELECTRIC_YELLOW}⚠️ No clipboard utility (like xclip or pbcopy) found. Install one for copy support.${RESET}"
+WARNING_NO_CLIPBOARD_UTILITY="${ELECTRIC_YELLOW}⚠️ No clipboard utility (like wl-copy, xclip or pbcopy) found. Install one for copy support.${RESET}"
 
 # --- CRUD Operations Prompts (from _crud_operations.sh) ---
 # Add Entry
@@ -273,7 +273,7 @@ ERROR_JQ_NOT_INSTALLED="${NEON_RED}${BRIGHT_BOLD}Error: 'jq' is not installed.${
 ${CYBER_BLUE}Please install 'jq' to use this script (e.g., ${ELECTRIC_YELLOW}sudo apt-get install jq${CYBER_BLUE}).${RESET}"
 ERROR_OPENSSL_NOT_INSTALLED="${NEON_RED}${BRIGHT_BOLD}Error: 'openssl' is not installed.${RESET}
 ${CYBER_BLUE}Please install 'openssl' to use this script (e.g., ${ELECTRIC_YELLOW}sudo apt-get install openssl${CYBER_BLUE}).${RESET}"
-WARNING_CLIPBOARD_NOT_AVAILABLE="${ELECTRIC_YELLOW}⚠️ Clipboard utility not found. Install ${BRIGHT_BOLD}xclip${RESET}${ELECTRIC_YELLOW} or ${BRIGHT_BOLD}pbcopy${RESET}${ELECTRIC_YELLOW} for copy support.${RESET}"
+WARNING_CLIPBOARD_NOT_AVAILABLE="${ELECTRIC_YELLOW}⚠️ Clipboard utility not found. Install ${BRIGHT_BOLD}wl-copy${RESET}${ELECTRIC_YELLOW}, ${BRIGHT_BOLD}xclip${RESET}${ELECTRIC_YELLOW} or ${BRIGHT_BOLD}pbcopy${RESET}${ELECTRIC_YELLOW} for copy support.${RESET}"
 SUCCESS_DEPENDENCIES_MET="${LIME_GREEN}✅ All dependencies are met.${RESET}
 "
 WARNING_NO_ENC_FILE_FOUND="${ELECTRIC_YELLOW}🔑 No encrypted credentials file found at ${BRIGHT_BOLD}%s${RESET}${ELECTRIC_YELLOW}.${RESET}"

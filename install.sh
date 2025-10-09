@@ -5,16 +5,30 @@ set -e
 
 # Function to check for a command's existence
 command_exists() {
-    command -v "$1" >/dev/null 2>&1
+    # whereis returns the command name and a colon even if not found.
+    # e.g., "nonexistent:"
+    # So we check if the output is longer than the command name + 1 character (for the colon).
+    local result
+    result=$(whereis -b "$1")
+    if [[ ${#result} -gt $((${#1} + 1)) ]]; then
+        return 0 # success
+    else
+        return 1 # failure
+    fi
 }
 
 # Check for dependencies
 echo "Checking for dependencies..."
-dependencies=("jq" "openssl" "xclip" "makepkg")
+dependencies=("jq" "openssl" "xclip" "wl-clipboard" "makepkg")
 missing_deps=()
 
 for dep in "${dependencies[@]}"; do
-    if ! command_exists "$dep"; then
+    check_cmd="$dep"
+    if [[ "$dep" == "wl-clipboard" ]]; then
+        check_cmd="wl-copy"
+    fi
+
+    if ! command_exists "$check_cmd"; then
         missing_deps+=("$dep")
     fi
 done

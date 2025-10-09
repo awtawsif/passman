@@ -77,7 +77,7 @@ check_dependencies() {
     exit 1
   fi
   # Clipboard utility check (warn only)
-  if ! command -v xclip &> /dev/null && ! command -v pbcopy &> /dev/null; then
+  if ! command -v xclip &> /dev/null && ! command -v pbcopy &> /dev/null && ! command -v wl-copy &> /dev/null; then
     echo -e "$WARNING_CLIPBOARD_NOT_AVAILABLE"
   fi
   echo -e "$SUCCESS_DEPENDENCIES_MET"

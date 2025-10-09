@@ -168,14 +168,17 @@ get_mandatory_input_conditional() {
   return 0 # Indicate success
 }
 
-# Copies a string to the clipboard using xclip (Linux) or pbcopy (macOS).
+# Copies a string to the clipboard using wl-copy (Wayland), xclip (X11), or pbcopy (macOS).
 # Arguments:
 #   $1: The string to copy.
 # Returns:
 #   0 if successful, 1 if no clipboard utility found.
 copy_to_clipboard() {
   local text="$1"
-  if command -v xclip &> /dev/null; then
+  if [[ "$XDG_SESSION_TYPE" == "wayland" ]] && command -v wl-copy &> /dev/null; then
+    printf "%s" "$text" | wl-copy
+    return 0
+  elif command -v xclip &> /dev/null; then
     printf "%s" "$text" | xclip -selection clipboard
     return 0
   elif command -v pbcopy &> /dev/null; then
